@@ -129,6 +129,95 @@ def is_allowed_file(filename):
     return True
 
 
+def get_system_drives():
+    """Get list of available drives (Windows) or root directories (Unix)"""
+    import platform
+
+    if platform.system() == 'Windows':
+        # Windows: Get available drives
+        import string
+        drives = []
+        for letter in string.ascii_uppercase:
+            drive = f"{letter}:\\"
+            if os.path.exists(drive):
+                try:
+                    # Try to access to verify it's available
+                    os.listdir(drive)
+                    drives.append({
+                        'name': f"{letter}: Drive",
+                        'path': drive,
+                        'accessible': True
+                    })
+                except (PermissionError, OSError):
+                    drives.append({
+                        'name': f"{letter}: Drive",
+                        'path': drive,
+                        'accessible': False
+                    })
+        return drives
+    else:
+        # Unix/Linux/Mac: Start from home directory or root
+        home = os.path.expanduser("~")
+        return [{
+            'name': 'Home',
+            'path': home,
+            'accessible': True
+        }, {
+            'name': 'Root',
+            'path': '/',
+            'accessible': os.access('/', os.R_OK)
+        }]
+
+
+def list_directories(path):
+    """List subdirectories in the given path"""
+    directories = []
+
+    try:
+        # Normalize path
+        path = os.path.abspath(path)
+
+        if not os.path.exists(path):
+            return None, "Path does not exist"
+
+        if not os.path.isdir(path):
+            return None, "Path is not a directory"
+
+        # Get parent directory
+        parent = os.path.dirname(path) if path != os.path.dirname(path) else None
+
+        # List all items in directory
+        try:
+            items = os.listdir(path)
+        except PermissionError:
+            return None, "Permission denied"
+
+        # Filter to only directories
+        for item in sorted(items):
+            item_path = os.path.join(path, item)
+            try:
+                if os.path.isdir(item_path):
+                    accessible = os.access(item_path, os.R_OK)
+                    directories.append({
+                        'name': item,
+                        'path': item_path,
+                        'accessible': accessible
+                    })
+            except (OSError, PermissionError):
+                # Skip items we can't access
+                continue
+
+        return {
+            'current_path': path,
+            'parent': parent,
+            'directories': directories
+        }, None
+
+    except Exception as e:
+        logger.error(f"Error listing directories in {path}: {str(e)}")
+        return None, str(e)
+
+
 def validate_folder_path(path):
     """Validate folder path for security and accessibility"""
     import json
@@ -421,6 +510,49 @@ def get_qr_code():
         os.path.basename(qr_path),
         mimetype='image/png'
     )
+
+
+@app.route('/api/browse-filesystem')
+@rate_limit
+def api_browse_filesystem():
+    """Browse server filesystem for folder selection"""
+    try:
+        path = request.args.get('path', '').strip()
+
+        # If no path specified, return drives/roots
+        if not path:
+            drives = get_system_drives()
+            return jsonify({
+                'success': True,
+                'drives': drives,
+                'current_path': None,
+                'parent': None,
+                'directories': []
+            }), 200
+
+        # List directories in the specified path
+        result, error = list_directories(path)
+
+        if error:
+            return jsonify({
+                'success': False,
+                'message': error
+            }), 400
+
+        return jsonify({
+            'success': True,
+            'current_path': result['current_path'],
+            'parent': result['parent'],
+            'directories': result['directories'],
+            'drives': []
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error browsing filesystem: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Internal server error'
+        }), 500
 
 
 @app.route('/api/folders', methods=['POST'])

@@ -245,6 +245,150 @@
             border: 1px solid #f5c6cb;
         }
 
+        .browse-button {
+            background: #28a745;
+            min-width: auto;
+            padding: 12px 20px;
+        }
+
+        .browse-button:hover {
+            background: #218838;
+        }
+
+        /* Modal Styles */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .modal-header {
+            padding: 20px;
+            border-bottom: 2px solid #eee;
+        }
+
+        .modal-header h3 {
+            margin: 0 0 10px 0;
+            color: #333;
+        }
+
+        .current-path {
+            font-family: 'Courier New', monospace;
+            color: #667eea;
+            font-size: 0.9em;
+            word-break: break-all;
+        }
+
+        .modal-body {
+            padding: 20px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .folder-browser-list {
+            list-style: none;
+        }
+
+        .folder-browser-item {
+            padding: 12px 15px;
+            border-bottom: 1px solid #eee;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            align-items: center;
+        }
+
+        .folder-browser-item:hover {
+            background: rgba(102, 126, 234, 0.1);
+        }
+
+        .folder-browser-item.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .folder-browser-item.disabled:hover {
+            background: transparent;
+        }
+
+        .folder-browser-item svg {
+            width: 24px;
+            height: 24px;
+            margin-right: 12px;
+            flex-shrink: 0;
+        }
+
+        .folder-browser-item.up-directory {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #667eea;
+        }
+
+        .modal-footer {
+            padding: 15px 20px;
+            border-top: 2px solid #eee;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+
+        .modal-button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .modal-button:hover {
+            transform: translateY(-2px);
+        }
+
+        .modal-button.primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .modal-button.secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .loading-message {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .error-message {
+            text-align: center;
+            padding: 40px;
+            color: #dc3545;
+        }
+
         @media (max-width: 600px) {
             .header h1 {
                 font-size: 2em;
@@ -342,7 +486,8 @@
                 <h3>Manage Shared Folders</h3>
 
                 <div class="add-folder-form">
-                    <input type="text" id="folderPath" placeholder="Enter folder path (e.g., C:\Users\Documents or /home/user/files)" />
+                    <input type="text" id="folderPath" placeholder="Enter folder path or click Browse..." />
+                    <button onclick="openFolderBrowser()" class="browse-button">Browse</button>
                     <button onclick="addFolder()">Add Folder</button>
                 </div>
 
@@ -351,7 +496,132 @@
         </div>
     </div>
 
+    <!-- Folder Browser Modal -->
+    <div id="folderBrowserModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Select Folder</h3>
+                <div class="current-path" id="currentPathDisplay">Loading...</div>
+            </div>
+            <div class="modal-body" id="folderBrowserBody">
+                <div class="loading-message">Loading...</div>
+            </div>
+            <div class="modal-footer">
+                <button onclick="selectCurrentFolder()" class="modal-button primary" id="selectButton" disabled>Select This Folder</button>
+                <button onclick="closeFolderBrowser()" class="modal-button secondary">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        let currentBrowsePath = null;
+
+        // Folder Browser Functions
+        async function openFolderBrowser() {
+            const modal = document.getElementById('folderBrowserModal');
+            modal.classList.add('active');
+            currentBrowsePath = null;
+            await browsePath('');
+        }
+
+        function closeFolderBrowser() {
+            const modal = document.getElementById('folderBrowserModal');
+            modal.classList.remove('active');
+            currentBrowsePath = null;
+        }
+
+        async function browsePath(path) {
+            const body = document.getElementById('folderBrowserBody');
+            const pathDisplay = document.getElementById('currentPathDisplay');
+            const selectButton = document.getElementById('selectButton');
+
+            body.innerHTML = '<div class="loading-message">Loading...</div>';
+            selectButton.disabled = true;
+
+            try {
+                const url = path ? `/api/browse-filesystem?path=${encodeURIComponent(path)}` : '/api/browse-filesystem';
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (!data.success) {
+                    body.innerHTML = `<div class="error-message">${data.message}</div>`;
+                    return;
+                }
+
+                currentBrowsePath = data.current_path;
+
+                // Update path display
+                if (currentBrowsePath) {
+                    pathDisplay.textContent = currentBrowsePath;
+                    selectButton.disabled = false;
+                } else {
+                    pathDisplay.textContent = 'Select a drive or location';
+                    selectButton.disabled = true;
+                }
+
+                // Build folder list
+                let html = '<ul class="folder-browser-list">';
+
+                // Show drives if no path selected
+                if (data.drives && data.drives.length > 0) {
+                    for (const drive of data.drives) {
+                        const disabled = !drive.accessible ? 'disabled' : '';
+                        html += `
+                            <li class="folder-browser-item ${disabled}" onclick="${drive.accessible ? `browsePath('${drive.path.replace(/\\/g, '\\\\')}')` : ''}">
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M4 6H9L11 8H20C20.5523 8 21 8.44772 21 9V18C21 18.5523 20.5523 19 20 19H4C3.44772 19 3 18.5523 3 18V7C3 6.44772 3.44772 6 4 6Z" stroke="#667eea" stroke-width="2"/>
+                                </svg>
+                                ${drive.name}
+                            </li>
+                        `;
+                    }
+                } else {
+                    // Show parent directory if available
+                    if (data.parent) {
+                        html += `
+                            <li class="folder-browser-item up-directory" onclick="browsePath('${data.parent.replace(/\\/g, '\\\\')}')">
+                                <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M19 12H5M5 12L12 19M5 12L12 5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                                .. (Parent Directory)
+                            </li>
+                        `;
+                    }
+
+                    // Show subdirectories
+                    if (data.directories && data.directories.length > 0) {
+                        for (const dir of data.directories) {
+                            const disabled = !dir.accessible ? 'disabled' : '';
+                            html += `
+                                <li class="folder-browser-item ${disabled}" onclick="${dir.accessible ? `browsePath('${dir.path.replace(/\\/g, '\\\\')}')` : ''}">
+                                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M4 6H9L11 8H20C20.5523 8 21 8.44772 21 9V18C21 18.5523 20.5523 19 20 19H4C3.44772 19 3 18.5523 3 18V7C3 6.44772 3.44772 6 4 6Z" stroke="#667eea" stroke-width="2"/>
+                                    </svg>
+                                    ${dir.name}
+                                </li>
+                            `;
+                        }
+                    } else {
+                        html += '<li class="folder-browser-item disabled"><em>No subdirectories</em></li>';
+                    }
+                }
+
+                html += '</ul>';
+                body.innerHTML = html;
+
+            } catch (error) {
+                body.innerHTML = `<div class="error-message">Error: ${error.message}</div>`;
+            }
+        }
+
+        function selectCurrentFolder() {
+            if (currentBrowsePath) {
+                document.getElementById('folderPath').value = currentBrowsePath;
+                closeFolderBrowser();
+            }
+        }
+
+        // Original Functions
         async function addFolder() {
             const pathInput = document.getElementById('folderPath');
             const path = pathInput.value.trim();

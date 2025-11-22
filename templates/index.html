@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetShare - Shared Folders</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .server-url {
+            background: rgba(255,255,255,0.2);
+            padding: 10px 20px;
+            border-radius: 8px;
+            display: inline-block;
+            margin-top: 10px;
+            backdrop-filter: blur(10px);
+        }
+
+        .server-url code {
+            color: white;
+            font-size: 1.1em;
+            font-family: 'Courier New', monospace;
+        }
+
+        .folders-container {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .folders-title {
+            font-size: 1.5em;
+            color: #333;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .folder-list {
+            list-style: none;
+        }
+
+        .folder-item {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin-bottom: 15px;
+            border-radius: 8px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            overflow: hidden;
+        }
+
+        .folder-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .folder-link {
+            display: flex;
+            align-items: center;
+            padding: 20px;
+            text-decoration: none;
+            color: white;
+        }
+
+        .folder-icon {
+            width: 50px;
+            height: 50px;
+            margin-right: 20px;
+            flex-shrink: 0;
+        }
+
+        .folder-info {
+            flex-grow: 1;
+        }
+
+        .folder-name {
+            font-size: 1.3em;
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .folder-path {
+            font-size: 0.9em;
+            opacity: 0.9;
+            font-family: 'Courier New', monospace;
+        }
+
+        .arrow {
+            font-size: 1.5em;
+            margin-left: 20px;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .empty-state svg {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+            opacity: 0.3;
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 2em;
+            }
+
+            .folders-container {
+                padding: 20px;
+            }
+
+            .folder-link {
+                padding: 15px;
+            }
+
+            .folder-icon {
+                width: 40px;
+                height: 40px;
+                margin-right: 15px;
+            }
+
+            .folder-name {
+                font-size: 1.1em;
+            }
+
+            .folder-path {
+                font-size: 0.8em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>NetShare</h1>
+            <p>Network File Sharing</p>
+            <div class="server-url">
+                <code>{{ server_url }}</code>
+            </div>
+        </div>
+
+        <div class="folders-container">
+            <h2 class="folders-title">Shared Folders ({{ folders|length }})</h2>
+
+            {% if folders %}
+                <ul class="folder-list">
+                    {% for folder in folders %}
+                    <li class="folder-item">
+                        <a href="/browse/{{ loop.index0 }}" class="folder-link">
+                            <svg class="folder-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 8L3 18C3 19.1046 3.89543 20 5 20H19C20.1046 20 21 19.1046 21 18V10C21 8.89543 20.1046 8 19 8H11L9 6H5C3.89543 6 3 6.89543 3 8Z" fill="white" fill-opacity="0.9"/>
+                                <path d="M3 8L3 18C3 19.1046 3.89543 20 5 20H19C20.1046 20 21 19.1046 21 18V10C21 8.89543 20.1046 8 19 8H11L9 6H5C3.89543 6 3 6.89543 3 8Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <div class="folder-info">
+                                <div class="folder-name">{{ folder.name }}</div>
+                                <div class="folder-path">{{ folder.full_path }}</div>
+                            </div>
+                            <span class="arrow">→</span>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <div class="empty-state">
+                    <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 8L3 18C3 19.1046 3.89543 20 5 20H19C20.1046 20 21 19.1046 21 18V10C21 8.89543 20.1046 8 19 8H11L9 6H5C3.89543 6 3 6.89543 3 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <h3>No folders shared</h3>
+                    <p>Add folders to share using the command line</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</body>
+</html>

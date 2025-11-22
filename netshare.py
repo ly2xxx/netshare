@@ -478,6 +478,133 @@ def browse(folder_index, subpath=''):
                          items=items)
 
 
+@app.route('/upload/<int:folder_index>', methods=['POST'])
+@app.route('/upload/<int:folder_index>/<path:subpath>', methods=['POST'])
+@rate_limit
+def upload_file(folder_index, subpath=''):
+    """Handle file upload to a shared folder"""
+    try:
+        # Validate folder index
+        if folder_index >= len(config.shared_folders):
+            logger.warning(f"Invalid folder index: {folder_index}")
+            return jsonify({
+                'success': False,
+                'message': 'Invalid folder index'
+            }), 404
+
+        base_folder = config.shared_folders[folder_index]
+        target_dir = os.path.join(base_folder, subpath)
+
+        # Security: ensure we're still within the shared folder
+        if not is_safe_path(base_folder, target_dir):
+            logger.warning(f"Path traversal attempt in upload: {target_dir}")
+            return jsonify({
+                'success': False,
+                'message': 'Invalid path'
+            }), 403
+
+        # Verify target directory exists
+        if not os.path.exists(target_dir) or not os.path.isdir(target_dir):
+            return jsonify({
+                'success': False,
+                'message': 'Target directory does not exist'
+            }), 404
+
+        # Check if file was included in request
+        if 'file' not in request.files:
+            return jsonify({
+                'success': False,
+                'message': 'No file provided'
+            }), 400
+
+        file = request.files['file']
+
+        # Check if filename is empty
+        if file.filename == '':
+            return jsonify({
+                'success': False,
+                'message': 'No file selected'
+            }), 400
+
+        # Sanitize filename to prevent path traversal
+        filename = os.path.basename(file.filename)
+        if not filename or filename.startswith('.'):
+            return jsonify({
+                'success': False,
+                'message': 'Invalid filename'
+            }), 400
+
+        # Build target file path
+        target_file_path = os.path.join(target_dir, filename)
+
+        # Final safety check
+        if not is_safe_path(base_folder, target_file_path):
+            logger.warning(f"Path traversal attempt via filename: {filename}")
+            return jsonify({
+                'success': False,
+                'message': 'Invalid filename'
+            }), 403
+
+        # Check if file already exists
+        if os.path.exists(target_file_path):
+            return jsonify({
+                'success': False,
+                'message': f'File "{filename}" already exists'
+            }), 409  # Conflict
+
+        # Check file size (read from content-length header if available)
+        content_length = request.content_length
+        if content_length and content_length > SecurityConfig.MAX_FILE_SIZE:
+            logger.warning(f"Upload too large: {content_length} bytes")
+            return jsonify({
+                'success': False,
+                'message': f'File too large. Maximum size is {format_size(SecurityConfig.MAX_FILE_SIZE)}'
+            }), 413  # Request Entity Too Large
+
+        # Save the file
+        try:
+            file.save(target_file_path)
+            file_size = os.path.getsize(target_file_path)
+
+            # Double-check size after saving
+            if file_size > SecurityConfig.MAX_FILE_SIZE:
+                os.remove(target_file_path)
+                logger.warning(f"Upload exceeded size limit: {file_size} bytes")
+                return jsonify({
+                    'success': False,
+                    'message': f'File too large. Maximum size is {format_size(SecurityConfig.MAX_FILE_SIZE)}'
+                }), 413
+
+            logger.info(f"File uploaded: {target_file_path} ({format_size(file_size)}) from {request.remote_addr}")
+
+            return jsonify({
+                'success': True,
+                'message': f'Successfully uploaded "{filename}"',
+                'filename': filename,
+                'size': format_size(file_size)
+            }), 200
+
+        except Exception as e:
+            logger.error(f"Error saving uploaded file: {str(e)}")
+            # Clean up if file was partially created
+            if os.path.exists(target_file_path):
+                try:
+                    os.remove(target_file_path)
+                except:
+                    pass
+            return jsonify({
+                'success': False,
+                'message': 'Failed to save file'
+            }), 500
+
+    except Exception as e:
+        logger.error(f"Error in upload handler: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Internal server error'
+        }), 500
+
+
 @app.route('/api/folders', methods=['GET'])
 @rate_limit
 def api_folders():

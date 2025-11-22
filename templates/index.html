@@ -131,6 +131,120 @@
             opacity: 0.3;
         }
 
+        .qr-code-section {
+            background: rgba(255,255,255,0.2);
+            padding: 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            text-align: center;
+            backdrop-filter: blur(10px);
+        }
+
+        .qr-code-section h3 {
+            color: white;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .qr-image {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            max-width: 200px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .qr-help {
+            color: rgba(255,255,255,0.9);
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        .folder-management {
+            margin-top: 30px;
+            padding: 25px;
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-radius: 8px;
+            border: 2px dashed rgba(102, 126, 234, 0.3);
+        }
+
+        .folder-management h3 {
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 1.2em;
+        }
+
+        .add-folder-form {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .add-folder-form input {
+            flex: 1;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            font-size: 1em;
+            transition: border-color 0.2s;
+        }
+
+        .add-folder-form input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .add-folder-form button {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .add-folder-form button:hover {
+            transform: translateY(-2px);
+        }
+
+        .remove-button {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-left: 10px;
+            transition: background 0.2s;
+            font-weight: 500;
+        }
+
+        .remove-button:hover {
+            background: #c82333;
+        }
+
+        .status-message {
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 10px;
+            display: none;
+            font-weight: 500;
+        }
+
+        .status-message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .status-message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
         @media (max-width: 600px) {
             .header h1 {
                 font-size: 2em;
@@ -157,6 +271,22 @@
             .folder-path {
                 font-size: 0.8em;
             }
+
+            .qr-image {
+                max-width: 150px;
+            }
+
+            .add-folder-form {
+                flex-direction: column;
+            }
+
+            .add-folder-form button {
+                width: 100%;
+            }
+
+            .folder-management {
+                padding: 15px;
+            }
         }
     </style>
 </head>
@@ -167,6 +297,12 @@
             <p>Network File Sharing</p>
             <div class="server-url">
                 <code>{{ server_url }}</code>
+            </div>
+
+            <div class="qr-code-section">
+                <h3>Scan to Access on Mobile</h3>
+                <img src="/qr-code" alt="QR Code" class="qr-image" />
+                <p class="qr-help">Scan this QR code with your phone camera</p>
             </div>
         </div>
 
@@ -187,6 +323,7 @@
                                 <div class="folder-path">{{ folder.full_path }}</div>
                             </div>
                             <span class="arrow">→</span>
+                            <button onclick="event.preventDefault(); removeFolder({{ loop.index0 }});" class="remove-button">Remove</button>
                         </a>
                     </li>
                     {% endfor %}
@@ -197,10 +334,97 @@
                         <path d="M3 8L3 18C3 19.1046 3.89543 20 5 20H19C20.1046 20 21 19.1046 21 18V10C21 8.89543 20.1046 8 19 8H11L9 6H5C3.89543 6 3 6.89543 3 8Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                     <h3>No folders shared</h3>
-                    <p>Add folders to share using the command line</p>
+                    <p>Add folders using the form below</p>
                 </div>
             {% endif %}
+
+            <div class="folder-management">
+                <h3>Manage Shared Folders</h3>
+
+                <div class="add-folder-form">
+                    <input type="text" id="folderPath" placeholder="Enter folder path (e.g., C:\Users\Documents or /home/user/files)" />
+                    <button onclick="addFolder()">Add Folder</button>
+                </div>
+
+                <div id="statusMessage" class="status-message"></div>
+            </div>
         </div>
     </div>
+
+    <script>
+        async function addFolder() {
+            const pathInput = document.getElementById('folderPath');
+            const path = pathInput.value.trim();
+
+            if (!path) {
+                showStatus('Please enter a folder path', 'error');
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/folders', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({path: path})
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showStatus(data.message, 'success');
+                    pathInput.value = '';
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showStatus(data.message, 'error');
+                }
+            } catch (error) {
+                showStatus('Network error: ' + error.message, 'error');
+            }
+        }
+
+        async function removeFolder(index) {
+            if (!confirm('Are you sure you want to remove this folder from sharing?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/folders/${index}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showStatus(data.message, 'success');
+                    setTimeout(() => location.reload(), 1000);
+                } else {
+                    showStatus(data.message, 'error');
+                }
+            } catch (error) {
+                showStatus('Network error: ' + error.message, 'error');
+            }
+        }
+
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMessage');
+            statusDiv.textContent = message;
+            statusDiv.className = `status-message ${type}`;
+            statusDiv.style.display = 'block';
+
+            // Auto-hide success messages after 5 seconds
+            if (type === 'success') {
+                setTimeout(() => {
+                    statusDiv.style.display = 'none';
+                }, 5000);
+            }
+        }
+
+        // Allow Enter key to add folder
+        document.getElementById('folderPath').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                addFolder();
+            }
+        });
+    </script>
 </body>
 </html>

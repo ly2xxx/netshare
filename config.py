@@ -60,6 +60,10 @@ class AppConfig:
     ENABLE_ACCESS_LOG = True
     LOG_FILE = "netshare.log"
 
+    # Folder management settings
+    FOLDERS_CONFIG_FILE = "shared_folders.json"
+    MAX_SHARED_FOLDERS = 20
+
 
 # Validate configuration on import
 def validate_config():

@@ -128,6 +128,86 @@ def is_allowed_file(filename):
     
     return True
 
+
+def validate_folder_path(path):
+    """Validate folder path for security and accessibility"""
+    import json
+
+    # Normalize path
+    path = os.path.abspath(path)
+
+    # Check if exists
+    if not os.path.exists(path):
+        return False, "Path does not exist"
+
+    # Check if directory
+    if not os.path.isdir(path):
+        return False, "Path is not a directory"
+
+    # Check read permissions
+    if not os.access(path, os.R_OK):
+        return False, "No read permission for this directory"
+
+    # Check if already shared
+    if path in config.shared_folders:
+        return False, "Folder is already shared"
+
+    # Check for parent-child conflicts
+    for existing in config.shared_folders:
+        if path.startswith(existing + os.sep):
+            return False, f"This folder is inside already shared folder: {os.path.basename(existing)}"
+        if existing.startswith(path + os.sep):
+            return False, f"Shared folder '{os.path.basename(existing)}' is inside this folder"
+
+    # Check max folders limit
+    if len(config.shared_folders) >= AppConfig.MAX_SHARED_FOLDERS:
+        return False, f"Maximum of {AppConfig.MAX_SHARED_FOLDERS} folders allowed"
+
+    return True, "Valid"
+
+
+def save_folders_to_file():
+    """Save shared folders list to JSON file"""
+    import json
+
+    try:
+        config_path = os.path.join(os.path.dirname(__file__), AppConfig.FOLDERS_CONFIG_FILE)
+        with open(config_path, 'w', encoding='utf-8') as f:
+            json.dump(config.shared_folders, f, indent=2)
+        logger.info(f"Saved {len(config.shared_folders)} folders to {config_path}")
+        return True
+    except Exception as e:
+        logger.error(f"Failed to save folders: {e}")
+        return False
+
+
+def load_folders_from_file():
+    """Load shared folders list from JSON file"""
+    import json
+
+    try:
+        config_path = os.path.join(os.path.dirname(__file__), AppConfig.FOLDERS_CONFIG_FILE)
+        if os.path.exists(config_path):
+            with open(config_path, 'r', encoding='utf-8') as f:
+                folders = json.load(f)
+
+            # Validate each folder still exists
+            valid_folders = []
+            for folder in folders:
+                if os.path.isdir(folder):
+                    valid_folders.append(folder)
+                else:
+                    logger.warning(f"Skipping non-existent folder from config: {folder}")
+
+            config.shared_folders = valid_folders
+            logger.info(f"Loaded {len(valid_folders)} folders from {config_path}")
+            return True
+    except Exception as e:
+        logger.error(f"Failed to load folders: {e}")
+
+    return False
+
+
 # Global configuration
 class Config:
     """Application configuration"""
@@ -324,6 +404,110 @@ def api_folders():
     return jsonify(folders)
 
 
+@app.route('/qr-code')
+@rate_limit
+def get_qr_code():
+    """Serve the QR code image"""
+    qr_path = os.path.join(os.path.dirname(__file__), 'netshare_qr.png')
+
+    if not os.path.exists(qr_path):
+        # Regenerate if missing
+        local_ip = get_local_ip()
+        url = f"http://{local_ip}:{config.server_port}"
+        qr_path = generate_qr_code(url)
+
+    return send_from_directory(
+        os.path.dirname(qr_path),
+        os.path.basename(qr_path),
+        mimetype='image/png'
+    )
+
+
+@app.route('/api/folders', methods=['POST'])
+@rate_limit
+def api_add_folder():
+    """Add a new shared folder"""
+    try:
+        data = request.get_json()
+
+        if not data or 'path' not in data:
+            return jsonify({
+                'success': False,
+                'message': 'Missing path parameter'
+            }), 400
+
+        folder_path = data['path'].strip()
+
+        # Validate path
+        is_valid, message = validate_folder_path(folder_path)
+
+        if not is_valid:
+            logger.warning(f"Invalid folder add attempt: {folder_path} - {message} from {request.remote_addr}")
+            return jsonify({
+                'success': False,
+                'message': message
+            }), 400
+
+        # Add to shared folders
+        config.shared_folders.append(folder_path)
+
+        # Save to file for persistence
+        save_folders_to_file()
+
+        logger.info(f"Folder added: {folder_path} from {request.remote_addr}")
+
+        return jsonify({
+            'success': True,
+            'message': f'Successfully added folder: {os.path.basename(folder_path)}',
+            'folders': [
+                {'index': idx, 'name': os.path.basename(p), 'path': p}
+                for idx, p in enumerate(config.shared_folders)
+            ]
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error adding folder: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Internal server error'
+        }), 500
+
+
+@app.route('/api/folders/<int:folder_index>', methods=['DELETE'])
+@rate_limit
+def api_remove_folder(folder_index):
+    """Remove a shared folder by index"""
+    try:
+        if folder_index < 0 or folder_index >= len(config.shared_folders):
+            return jsonify({
+                'success': False,
+                'message': 'Invalid folder index'
+            }), 400
+
+        removed_path = config.shared_folders.pop(folder_index)
+
+        # Save to file for persistence
+        save_folders_to_file()
+
+        logger.info(f"Folder removed: {removed_path} from {request.remote_addr}")
+
+        return jsonify({
+            'success': True,
+            'message': f'Successfully removed folder: {os.path.basename(removed_path)}',
+            'folders': [
+                {'index': idx, 'name': os.path.basename(p), 'path': p}
+                for idx, p in enumerate(config.shared_folders)
+            ]
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error removing folder: {str(e)}")
+        return jsonify({
+            'success': False,
+            'message': 'Internal server error'
+        }), 500
+
+
 def select_folders_gui():
     """GUI for selecting folders to share"""
     if not HAS_GUI:
@@ -406,7 +590,10 @@ Examples:
                        help='Port to run server on (default: 5000)')
     
     args = parser.parse_args()
-    
+
+    # Try to load folders from saved config first
+    load_folders_from_file()
+
     # Determine folders to share
     if args.gui:
         if not HAS_GUI:
@@ -414,14 +601,19 @@ Examples:
             print("Please use --folder option instead.")
             sys.exit(1)
         config.shared_folders = select_folders_gui()
+        # Save GUI-selected folders
+        if config.shared_folders:
+            save_folders_to_file()
     elif args.folder:
         config.shared_folders = [os.path.abspath(f) for f in args.folder]
-    else:
-        # Interactive mode
+        # Save command-line folders
+        save_folders_to_file()
+    elif not config.shared_folders:
+        # Interactive mode (only if no saved folders)
         print("NetShare - Network File Sharing Tool")
         print("="*50)
         print("Enter folders to share (one per line, empty line to finish):")
-        
+
         while True:
             folder = input("Folder path: ").strip()
             if not folder:
@@ -431,7 +623,14 @@ Examples:
                 print(f"  ✓ Added: {folder}")
             else:
                 print(f"  ✗ Not a valid folder: {folder}")
-        
+
+        # Save interactively-selected folders
+        if config.shared_folders:
+            save_folders_to_file()
+    else:
+        # Using saved folders from config file
+        print(f"Loaded {len(config.shared_folders)} folder(s) from saved configuration")
+
     if not config.shared_folders:
         print("\nNo folders selected. Exiting.")
         sys.exit(0)

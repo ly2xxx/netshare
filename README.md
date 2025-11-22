@@ -1,5 +1,5 @@
 # NetShare
-
+![1763844410242](image/README/1763844410242.png)
 A secure, Python-based network file sharing tool that enables easy sharing of folders from Windows, Mac, or Linux computers to Android devices, Quest VR headsets, and other devices over your local WiFi network.
 
 ## 🚀 Features
@@ -233,7 +233,7 @@ cd path\to\netshare
 
 2. **Navigate to NetShare directory**:
    ```powershell
-   cd H:\code\yl\netshare
+   cd path\to\netshare
    ```
 
 3. **Run the firewall fix script**:
@@ -243,9 +243,7 @@ cd path\to\netshare
 
 4. **Test the connection** from your mobile device using the displayed URL (e.g., `http://192.168.0.96:8080`)
 
-**Why is this needed?** Windows Firewall rules may only apply to "Public" network profiles, while your home network is set to "Private". The fix script creates rules specifically for the Private profile.
-
-**Security Note**: The firewall rules only apply to "Private" networks (home/trusted networks). If you connect to public WiFi, NetShare will remain blocked for your protection.
+**Why is this needed?** Windows Firewall rules may only apply to "Public" network profiles, while your home network is set to "Private". The fix script creates rules that work on all network profiles.
 
 **Alternative: Use firewall-friendly port**
 ```bash

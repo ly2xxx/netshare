@@ -213,6 +213,46 @@ Solutions:
 3. Try running as administrator (Windows) or with sudo (Linux/Mac)
 ```
 
+**Windows Firewall Configuration (Windows Only)**
+
+If you can access NetShare from the host PC but not from other devices on the same WiFi network, you need to configure Windows Firewall:
+
+**Step 1: Run the diagnostic script** (optional, to check current settings)
+```powershell
+# In PowerShell (as Administrator)
+cd path\to\netshare
+.\firewall_diagnostic.ps1
+```
+
+**Step 2: Fix the firewall rules**
+1. **Open PowerShell as Administrator**:
+   - Press Windows key
+   - Type "PowerShell"
+   - Right-click "Windows PowerShell"
+   - Select "Run as Administrator"
+
+2. **Navigate to NetShare directory**:
+   ```powershell
+   cd H:\code\yl\netshare
+   ```
+
+3. **Run the firewall fix script**:
+   ```powershell
+   .\fix_firewall.ps1
+   ```
+
+4. **Test the connection** from your mobile device using the displayed URL (e.g., `http://192.168.0.96:8080`)
+
+**Why is this needed?** Windows Firewall rules may only apply to "Public" network profiles, while your home network is set to "Private". The fix script creates rules specifically for the Private profile.
+
+**Security Note**: The firewall rules only apply to "Private" networks (home/trusted networks). If you connect to public WiFi, NetShare will remain blocked for your protection.
+
+**Alternative: Use firewall-friendly port**
+```bash
+# Port 8080 is more commonly allowed by firewalls
+python netshare.py --port 8080
+```
+
 ### File Access Issues
 
 **Problem**: Cannot download certain files

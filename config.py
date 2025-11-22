@@ -40,22 +40,22 @@ class SecurityConfig:
 
 class AppConfig:
     """Application configuration"""
-    
+
     # Default server settings
     DEFAULT_PORT = 5000
     DEFAULT_HOST = '0.0.0.0'
-    
+
     # Server identification
     SERVER_NAME = "NetShare"
     VERSION = "1.0.0"
-    
+
     # QR Code settings
     QR_BOX_SIZE = 10
     QR_BORDER = 4
-    
+
     # UI settings
     ITEMS_PER_PAGE = 100
-    
+
     # Logging
     ENABLE_ACCESS_LOG = True
     LOG_FILE = "netshare.log"
@@ -63,6 +63,20 @@ class AppConfig:
     # Folder management settings
     FOLDERS_CONFIG_FILE = "shared_folders.json"
     MAX_SHARED_FOLDERS = 20
+
+    # Large file streaming settings
+    # Chunk size for streaming large files (1MB chunks)
+    STREAM_CHUNK_SIZE = 1 * 1024 * 1024
+    # Cache control for static files (in seconds)
+    SEND_FILE_MAX_AGE = 43200  # 12 hours
+
+    # Multi-part download settings
+    # Enable multi-part download for large files
+    ENABLE_MULTIPART_DOWNLOAD = True
+    # Files larger than this will offer multi-part download option (2GB)
+    MULTIPART_THRESHOLD = 2 * 1024 * 1024 * 1024
+    # Size of each download chunk (1GB default)
+    MULTIPART_CHUNK_SIZE = 1 * 1024 * 1024 * 1024
 
 
 # Validate configuration on import

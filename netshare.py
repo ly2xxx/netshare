@@ -10,6 +10,7 @@ import sys
 import threading
 import webbrowser
 import logging
+import traceback
 from pathlib import Path
 from urllib.parse import quote, unquote
 from functools import wraps
@@ -17,7 +18,8 @@ from collections import defaultdict
 from time import time
 
 import qrcode
-from flask import Flask, render_template, send_from_directory, abort, request, jsonify
+from flask import Flask, render_template, send_from_directory, send_file, abort, request, jsonify
+from waitress import serve
 
 # Import configuration
 try:
@@ -51,6 +53,10 @@ except ImportError:
     print("Warning: tkinter not available. GUI folder selection disabled.")
 
 app = Flask(__name__)
+
+# Configure Flask for large file streaming
+app.config['SEND_FILE_MAX_AGE_DEFAULT'] = AppConfig.SEND_FILE_MAX_AGE
+app.config['MAX_CONTENT_LENGTH'] = None  # Remove any content length limit
 
 # Configure logging
 if AppConfig.ENABLE_ACCESS_LOG:
@@ -366,6 +372,32 @@ def get_file_info(filepath):
     }
 
 
+def is_video_file(filename):
+    """Check if file is a video file"""
+    video_extensions = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm', '.m4v', '.mpg', '.mpeg', '.3gp']
+    ext = os.path.splitext(filename)[1].lower()
+    return ext in video_extensions
+
+
+def get_video_mimetype(filename):
+    """Get appropriate MIME type for video files"""
+    ext = os.path.splitext(filename)[1].lower()
+    mime_types = {
+        '.mp4': 'video/mp4',
+        '.mkv': 'video/x-matroska',
+        '.avi': 'video/x-msvideo',
+        '.mov': 'video/quicktime',
+        '.wmv': 'video/x-ms-wmv',
+        '.flv': 'video/x-flv',
+        '.webm': 'video/webm',
+        '.m4v': 'video/x-m4v',
+        '.mpg': 'video/mpeg',
+        '.mpeg': 'video/mpeg',
+        '.3gp': 'video/3gpp'
+    }
+    return mime_types.get(ext, 'application/octet-stream')
+
+
 @app.route('/')
 @rate_limit
 def index():
@@ -423,12 +455,56 @@ def browse(folder_index, subpath=''):
             abort(413)  # Request Entity Too Large
         
         logger.info(f"Serving file: {target_path} to {request.remote_addr}")
-        
-        return send_from_directory(
-            os.path.dirname(target_path),
-            os.path.basename(target_path),
-            as_attachment=True
-        )
+
+        # Warn for very large files
+        if file_size > 5 * 1024 * 1024 * 1024:  # > 5GB
+            logger.warning(f"Large file warning: {format_size(file_size)} - Some mobile/VR browsers may not support files this large")
+            logger.warning(f"Client: {request.headers.get('User-Agent', 'Unknown')}")
+
+        # Pre-flight diagnostics
+        try:
+            logger.info(f"File size: {file_size} bytes ({format_size(file_size)})")
+            logger.info(f"File readable: {os.access(target_path, os.R_OK)}")
+            logger.info(f"Request headers: {dict(request.headers)}")
+
+            # Check if user explicitly wants to download (via ?download=1 parameter)
+            force_download = request.args.get('download', '0') == '1'
+
+            # Determine if this is a video file
+            is_video = is_video_file(target_path)
+
+            # For video files, serve for streaming (inline) unless download is forced
+            # This allows VR/mobile devices to play videos directly without downloading
+            if is_video and not force_download:
+                logger.info(f"Serving video file for streaming: {os.path.basename(target_path)}")
+                response = send_file(
+                    target_path,
+                    as_attachment=False,  # Inline - allows browser to play/stream
+                    conditional=True,  # Enable range requests for seeking
+                    max_age=0,
+                    mimetype=get_video_mimetype(target_path)
+                )
+            else:
+                # Non-video files or forced download
+                logger.info(f"Serving file for download: {os.path.basename(target_path)}")
+                response = send_file(
+                    target_path,
+                    as_attachment=True,
+                    download_name=os.path.basename(target_path),
+                    conditional=True,
+                    max_age=0,
+                    mimetype='application/octet-stream'
+                )
+
+            logger.info(f"Response created successfully for {os.path.basename(target_path)}")
+            logger.info(f"Response status: {response.status}")
+            logger.info(f"Response headers: {dict(response.headers)}")
+            return response
+
+        except Exception as e:
+            logger.error(f"Error serving file {target_path}: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            abort(500)
     
     # If it's a directory, list contents
     if not SecurityConfig.ALLOW_DIRECTORY_LISTING:
@@ -445,11 +521,22 @@ def browse(folder_index, subpath=''):
                     continue
                 
                 info = get_file_info(item_path)
+                # Check if file is large enough for multi-part download
+                is_large = (not info['is_dir'] and
+                           AppConfig.ENABLE_MULTIPART_DOWNLOAD and
+                           info['size_bytes'] >= AppConfig.MULTIPART_THRESHOLD)
+
+                num_parts = 0
+                if is_large:
+                    num_parts = (info['size_bytes'] + AppConfig.MULTIPART_CHUNK_SIZE - 1) // AppConfig.MULTIPART_CHUNK_SIZE
+
                 items.append({
                     'name': item_name,
                     'is_dir': info['is_dir'],
                     'size': info['size'],
-                    'size_bytes': info['size_bytes']
+                    'size_bytes': info['size_bytes'],
+                    'is_large': is_large,
+                    'num_parts': num_parts
                 })
             except (OSError, PermissionError):
                 # Skip files we can't access
@@ -476,6 +563,88 @@ def browse(folder_index, subpath=''):
                          current_path=subpath,
                          breadcrumbs=breadcrumbs,
                          items=items)
+
+
+@app.route('/download-part/<int:folder_index>/<int:part_num>/<path:subpath>')
+@rate_limit
+def download_part(folder_index, part_num, subpath=''):
+    """Download a specific part of a large file"""
+    if folder_index >= len(config.shared_folders):
+        logger.warning(f"Invalid folder index: {folder_index}")
+        abort(404)
+
+    base_folder = config.shared_folders[folder_index]
+    target_path = os.path.join(base_folder, subpath)
+
+    # Security: ensure we're still within the shared folder
+    if not is_safe_path(base_folder, target_path):
+        logger.warning(f"Path traversal attempt: {target_path}")
+        abort(403)
+
+    if not os.path.exists(target_path) or not os.path.isfile(target_path):
+        abort(404)
+
+    # Check if file download is allowed
+    if not SecurityConfig.ALLOW_FILE_DOWNLOAD:
+        abort(403)
+
+    # Check file extension
+    if not is_allowed_file(target_path):
+        abort(403)
+
+    # Get file size
+    file_size = os.path.getsize(target_path)
+    chunk_size = AppConfig.MULTIPART_CHUNK_SIZE
+
+    # Calculate total parts
+    total_parts = (file_size + chunk_size - 1) // chunk_size
+
+    # Validate part number (1-indexed for user-friendly URLs)
+    if part_num < 1 or part_num > total_parts:
+        logger.warning(f"Invalid part number: {part_num} (total: {total_parts})")
+        abort(404)
+
+    # Calculate byte range for this part
+    start_byte = (part_num - 1) * chunk_size
+    end_byte = min(start_byte + chunk_size, file_size)
+    part_size = end_byte - start_byte
+
+    logger.info(f"Serving part {part_num}/{total_parts} of {os.path.basename(target_path)} ({format_size(part_size)})")
+    logger.info(f"Byte range: {start_byte}-{end_byte-1} (total: {file_size})")
+
+    try:
+        # Open file and seek to start position
+        def generate_chunk():
+            with open(target_path, 'rb') as f:
+                f.seek(start_byte)
+                remaining = part_size
+                read_size = 1024 * 1024  # Read 1MB at a time
+
+                while remaining > 0:
+                    chunk = f.read(min(read_size, remaining))
+                    if not chunk:
+                        break
+                    remaining -= len(chunk)
+                    yield chunk
+
+        # Create response with appropriate filename
+        filename = os.path.basename(target_path)
+        part_filename = f"{os.path.splitext(filename)[0]}.part{part_num:03d}{os.path.splitext(filename)[1]}"
+
+        from flask import Response
+        response = Response(generate_chunk(), mimetype='application/octet-stream')
+        response.headers['Content-Disposition'] = f'attachment; filename="{part_filename}"'
+        response.headers['Content-Length'] = str(part_size)
+        response.headers['X-Part-Number'] = str(part_num)
+        response.headers['X-Total-Parts'] = str(total_parts)
+        response.headers['X-Original-Filename'] = filename
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error serving file part: {str(e)}")
+        logger.error(f"Traceback: {traceback.format_exc()}")
+        abort(500)
 
 
 @app.route('/api/folders', methods=['GET'])
@@ -640,6 +809,24 @@ def api_remove_folder(folder_index):
         }), 500
 
 
+@app.errorhandler(Exception)
+def handle_exception(e):
+    """Global exception handler for debugging"""
+    logger.error(f"Unhandled exception: {str(e)}")
+    logger.error(f"Traceback: {traceback.format_exc()}")
+    logger.error(f"Request: {request.method} {request.path}")
+    logger.error(f"Client: {request.remote_addr}")
+
+    # Return 500 error
+    if request.path.startswith('/api/'):
+        return jsonify({
+            'success': False,
+            'message': 'Internal server error'
+        }), 500
+    else:
+        return render_template('error.html', error='Internal server error'), 500
+
+
 def select_folders_gui():
     """GUI for selecting folders to share"""
     if not HAS_GUI:
@@ -694,9 +881,21 @@ def start_server(port=5000):
         threading.Timer(1.5, lambda: webbrowser.open(url)).start()
     except:
         pass
-    
-    # Start Flask server
-    app.run(host=config.host, port=port, debug=False, threaded=True)
+
+    # Start production WSGI server (Waitress)
+    # Waitress is better for large file transfers than Flask's dev server
+    print("Starting production server with Waitress...")
+    print("Optimized for large file transfers with parallel connections...")
+    serve(
+        app,
+        host=config.host,
+        port=port,
+        threads=12,  # Increased for parallel downloads
+        channel_timeout=600,  # 10 minutes for very large files
+        send_bytes=65536,  # 64KB chunks for better throughput
+        outbuf_overflow=10485760,  # 10MB buffer overflow
+        asyncore_use_poll=True  # Better performance for many connections
+    )
 
 
 def main():

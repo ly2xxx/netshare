@@ -274,7 +274,9 @@ When prompted:
 **C. Test Installation from TestPyPI:**
 ```bash
 # In a fresh virtual environment
-pip install --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ netshare
+pip cache purge
+
+pip install --no-cache-dir --index-url https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ netshare
 
 # Test it works
 netshare --help
@@ -386,7 +388,7 @@ To release a new version:
 2. Update CHANGELOG or README with changes
 3. Rebuild: `python -m build`
 4. Upload: `twine upload dist/*`
-5. Tag release: `git tag v1.0.1 && git push origin v1.0.1`
+5. Tag release: `git tag v1.0.x && git push origin v1.0.x`
 
 ---
 

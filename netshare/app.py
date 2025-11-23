@@ -835,9 +835,9 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  netshare.py --gui                    # Use GUI to select folders
-  netshare.py --folder /path/to/share  # Share specific folder
-  netshare.py --folder "C:\\Users\\Documents" --port 8000
+  netshare --gui                    # Use GUI to select folders
+  netshare --folder /path/to/share  # Share specific folder
+  netshare --folder "C:\\Users\\Documents" --port 8000
         """
     )
     

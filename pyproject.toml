@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "netshare"
-version = "1.0.0"
+version = "1.0.2"
 description = "Secure network file sharing tool for local WiFi networks"
 readme = "README.md"
 license = {text = "GPL-3.0"}
@@ -46,6 +46,7 @@ requires-python = ">=3.7"
 dependencies = [
     "Flask>=3.0.0",
     "qrcode>=7.4.2",
+    "Pillow>=9.0.0",
 ]
 
 [project.urls]

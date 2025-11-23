@@ -20,7 +20,23 @@ A secure, Python-based network file sharing tool that enables easy sharing of fo
 
 ## 🔧 Installation
 
-### Quick Install
+### From PyPI (Recommended)
+
+The easiest way to install NetShare is via pip:
+
+```bash
+pip install netshare
+```
+
+Then run it with:
+
+```bash
+netshare --gui              # GUI mode
+netshare --folder /path     # Specify folder
+netshare --help             # Show all options
+```
+
+### From Source
 
 1. **Clone or download this repository**:
    ```bash
@@ -64,22 +80,45 @@ A secure, Python-based network file sharing tool that enables easy sharing of fo
 ## 🚀 Quick Start
 
 ### Method 1: GUI Mode (Easiest)
+
+**If installed via pip:**
+```bash
+netshare --gui
+```
+
+**If running from source:**
 ```bash
 python netshare.py --gui
 ```
+
 1. Select folders using the graphical interface
 2. Server starts automatically
 3. Scan the QR code with your mobile device or use the displayed URL
 
 ### Method 2: Command Line
+
+**If installed via pip:**
+```bash
+netshare --folder "C:\Users\YourName\Documents" --port 8000
+```
+
+**If running from source:**
 ```bash
 python netshare.py --folder "C:\Users\YourName\Documents" --port 8000
 ```
 
 ### Method 3: Interactive Mode
+
+**If installed via pip:**
+```bash
+netshare
+```
+
+**If running from source:**
 ```bash
 python netshare.py
 ```
+
 Follow the prompts to enter folder paths.
 
 ## 📖 Detailed Usage

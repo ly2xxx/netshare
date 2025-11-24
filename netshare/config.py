@@ -9,7 +9,7 @@ class SecurityConfig:
     """Security-related configuration"""
     
     # Maximum file size to serve (in bytes) - 10GB default
-    MAX_FILE_SIZE = 10 * 1024 * 1024 * 1024
+    MAX_FILE_SIZE = 20 * 1024 * 1024 * 1024
     
     # Allowed file extensions (empty list = allow all)
     # Uncomment and populate to restrict file types

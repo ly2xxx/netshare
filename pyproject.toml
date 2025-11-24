@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "netshare"
-version = "1.0.2"
+version = "1.0.3"
 description = "Secure network file sharing tool for local WiFi networks"
 readme = "README.md"
 license = {text = "GPL-3.0"}

@@ -25,7 +25,7 @@ try:
 except ImportError:
     # Fallback if config.py is not available
     class SecurityConfig:
-        MAX_FILE_SIZE = 10 * 1024 * 1024 * 1024
+        MAX_FILE_SIZE = 20 * 1024 * 1024 * 1024
         BLOCKED_EXTENSIONS = ['.exe', '.bat', '.cmd', '.sh', '.ps1']
         ALLOW_DIRECTORY_LISTING = True
         ALLOW_FILE_DOWNLOAD = True

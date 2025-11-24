@@ -45,14 +45,14 @@ netshare --help             # Show all options
    cd netshare
    ```
 
-2. **Install dependencies**:
+2. **Install in editable mode**:
    ```bash
-   pip install -r requirements.txt
+   pip install -e .
    ```
 
 3. **Run NetShare**:
    ```bash
-   python netshare.py --gui
+   netshare --gui
    ```
 
 ### Using Virtual Environment (Recommended)
@@ -68,28 +68,22 @@ netshare --help             # Show all options
    source netshare-env/bin/activate
    ```
 
-2. **Install dependencies**:
+2. **Install in editable mode**:
    ```bash
-   pip install -r requirements.txt
+   pip install -e .
    ```
 
 3. **Run the application**:
    ```bash
-   python netshare.py --gui
+   netshare --gui
    ```
 
 ## 🚀 Quick Start
 
 ### Method 1: GUI Mode (Easiest)
 
-**If installed via pip:**
 ```bash
 netshare --gui
-```
-
-**If running from source:**
-```bash
-python netshare.py --gui
 ```
 
 1. Select folders using the graphical interface
@@ -98,26 +92,14 @@ python netshare.py --gui
 
 ### Method 2: Command Line
 
-**If installed via pip:**
 ```bash
 netshare --folder "C:\Users\YourName\Documents" --port 8000
 ```
 
-**If running from source:**
-```bash
-python netshare.py --folder "C:\Users\YourName\Documents" --port 8000
-```
-
 ### Method 3: Interactive Mode
 
-**If installed via pip:**
 ```bash
 netshare
-```
-
-**If running from source:**
-```bash
-python netshare.py
 ```
 
 Follow the prompts to enter folder paths.
@@ -127,7 +109,7 @@ Follow the prompts to enter folder paths.
 ### Command Line Options
 
 ```bash
-python netshare.py [options]
+netshare [options]
 
 Options:
   --gui                 Use GUI to select folders
@@ -136,9 +118,9 @@ Options:
   -h, --help           Show help message
 
 Examples:
-  netshare.py --gui                                    # GUI mode
-  netshare.py --folder /path/to/share                  # Share single folder
-  netshare.py --folder "C:\Documents" --folder "C:\Pictures" --port 8000   # Multiple folders, custom port
+  netshare --gui                                    # GUI mode
+  netshare --folder /path/to/share                  # Share single folder
+  netshare --folder "C:\Documents" --folder "C:\Pictures" --port 8000   # Multiple folders, custom port
 ```
 
 ### Accessing Shared Files
@@ -161,12 +143,12 @@ Examples:
 
 ### Security Settings
 
-Edit `config.py` to customize security settings:
+Edit `netshare/config.py` in your installation directory to customize security settings:
 
 ```python
 class SecurityConfig:
-    # Maximum file size to serve (10GB default)
-    MAX_FILE_SIZE = 10 * 1024 * 1024 * 1024
+    # Maximum file size to serve (20GB default)
+    MAX_FILE_SIZE = 20 * 1024 * 1024 * 1024
 
     # Block dangerous file extensions
     BLOCKED_EXTENSIONS = ['.exe', '.bat', '.cmd', '.sh', '.ps1']
@@ -197,22 +179,22 @@ class AppConfig:
 ### Custom Port Configuration
 ```bash
 # Use a different port if 5000 is occupied
-python netshare.py --folder ~/Documents --port 8080
+netshare --folder ~/Documents --port 8080
 ```
 
 ### Multiple Folder Sharing
 ```bash
 # Share multiple folders simultaneously
-python netshare.py --folder ~/Documents --folder ~/Pictures --folder ~/Downloads
+netshare --folder ~/Documents --folder ~/Pictures --folder ~/Downloads
 ```
 
 ### Running as Background Service
 ```bash
 # Run in background (Linux/macOS)
-nohup python netshare.py --folder ~/shared &
+nohup netshare --folder ~/shared &
 
 # Windows (run in separate command window)
-start python netshare.py --folder C:\Shared
+start netshare --folder C:\Shared
 ```
 
 ## 📱 Mobile Access Tips
@@ -288,7 +270,7 @@ cd path\to\netshare
 **Alternative: Use firewall-friendly port**
 ```bash
 # Port 8080 is more commonly allowed by firewalls
-python netshare.py --port 8080
+netshare --port 8080
 ```
 
 ### File Access Issues
@@ -296,16 +278,16 @@ python netshare.py --port 8080
 **Problem**: Cannot download certain files
 ```bash
 Solutions:
-1. Check BLOCKED_EXTENSIONS in config.py
+1. Check BLOCKED_EXTENSIONS in netshare/config.py
 2. Verify file size under MAX_FILE_SIZE limit
-3. Ensure ALLOW_FILE_DOWNLOAD = True in config.py
+3. Ensure ALLOW_FILE_DOWNLOAD = True in netshare/config.py
 ```
 
 **Problem**: Folders not showing
 ```bash
 Solutions:
 1. Verify folder paths exist and are accessible
-2. Check ALLOW_DIRECTORY_LISTING = True in config.py
+2. Check ALLOW_DIRECTORY_LISTING = True in netshare/config.py
 3. Ensure proper read permissions on folders
 ```
 
@@ -352,7 +334,7 @@ Solutions:
 
 4. **Use non-default ports** to reduce discovery:
    ```bash
-   python netshare.py --folder ~/Documents --port 8543
+   netshare --folder ~/Documents --port 8543
    ```
 
 ### Network Security
@@ -416,10 +398,19 @@ Components:
 ### File Structure
 ```
 netshare/
-├── netshare.py      # Main application
-├── config.py        # Configuration settings
-├── requirements.txt # Python dependencies
-└── README.md       # This documentation
+├── netshare/
+│   ├── __init__.py
+│   ├── __main__.py
+│   ├── app.py          # Main application
+│   ├── config.py       # Configuration settings
+│   └── templates/      # HTML templates
+│       ├── index.html
+│       ├── browse.html
+│       └── error.html
+├── requirements.txt
+├── pyproject.toml      # Package configuration
+├── LICENSE
+└── README.md          # This documentation
 ```
 
 ### Supported File Operations

@@ -173,6 +173,55 @@
             opacity: 1;
         }
 
+        /* Download buttons container */
+        .download-buttons {
+            display: flex;
+            gap: 8px;
+            margin-left: 10px;
+            flex-shrink: 0;
+        }
+
+        .download-btn {
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.85em;
+            font-weight: 500;
+            text-decoration: none;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            transition: transform 0.2s, background 0.2s;
+            white-space: nowrap;
+        }
+
+        .download-btn svg {
+            width: 16px;
+            height: 16px;
+            flex-shrink: 0;
+        }
+
+        .download-btn.standard {
+            background: #667eea;
+            color: white;
+        }
+
+        .download-btn.standard:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .download-btn.chunked {
+            background: #11998e;
+            color: white;
+        }
+
+        .download-btn.chunked:hover {
+            background: #0e8074;
+            transform: translateY(-2px);
+        }
+
         .empty-folder {
             text-align: center;
             padding: 60px 20px;
@@ -299,6 +348,159 @@
             font-weight: 500;
         }
 
+        /* Chunked Download Modal */
+        .chunked-download-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .chunked-download-modal.active {
+            display: flex;
+        }
+
+        .chunked-modal-content {
+            background: white;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .chunked-modal-header {
+            padding: 20px;
+            border-bottom: 2px solid #eee;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .chunked-modal-header h3 {
+            margin: 0 0 10px 0;
+            font-size: 1.3em;
+        }
+
+        .download-filename {
+            font-family: 'Courier New', monospace;
+            font-size: 0.9em;
+            word-break: break-all;
+            opacity: 0.95;
+        }
+
+        .chunked-modal-body {
+            padding: 25px;
+        }
+
+        .download-progress {
+            margin-bottom: 15px;
+        }
+
+        .progress-info {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .progress-percent {
+            color: #667eea;
+            font-size: 1.1em;
+        }
+
+        .chunk-details {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        .download-stats {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 8px;
+            font-size: 0.85em;
+            color: #888;
+        }
+
+        .chunked-modal-footer {
+            padding: 15px 20px;
+            border-top: 2px solid #eee;
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            background: #f8f9fa;
+        }
+
+        .modal-action-btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            font-size: 0.95em;
+        }
+
+        .modal-action-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+
+        .modal-action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .modal-action-btn.pause {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .modal-action-btn.pause:hover:not(:disabled) {
+            background: #ffb300;
+        }
+
+        .modal-action-btn.resume {
+            background: #28a745;
+            color: white;
+        }
+
+        .modal-action-btn.resume:hover:not(:disabled) {
+            background: #218838;
+        }
+
+        .modal-action-btn.cancel {
+            background: #dc3545;
+            color: white;
+        }
+
+        .modal-action-btn.cancel:hover:not(:disabled) {
+            background: #c82333;
+        }
+
+        .download-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            padding: 12px;
+            border-radius: 6px;
+            margin-top: 15px;
+            display: none;
+            font-size: 0.9em;
+        }
+
+        .download-error.show {
+            display: block;
+        }
+
         @media (max-width: 600px) {
             body {
                 padding: 10px;
@@ -421,7 +623,7 @@
                                 </div>
                             </a>
                         {% else %}
-                            <a href="/browse/{{ folder_index }}/{% if current_path %}{{ current_path }}/{% endif %}{{ item.name }}" class="item item-file">
+                            <div class="item item-file" data-filename="{{ item.name }}" data-filepath="{% if current_path %}{{ current_path }}/{% endif %}{{ item.name }}" data-size="{{ item.size_bytes }}">
                                 <svg class="item-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8L14 2Z" fill="#764ba2" fill-opacity="0.1"/>
                                     <path d="M14 2H6C4.89543 2 4 2.89543 4 4V20C4 21.1046 4.89543 22 6 22H18C19.1046 22 20 21.1046 20 20V8M14 2L20 8M14 2V8H20" stroke="#764ba2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -430,10 +632,24 @@
                                     <div class="item-name">{{ item.name }}</div>
                                     <div class="item-size">{{ item.size }}</div>
                                 </div>
-                                <svg class="download-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M21 15V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V15M7 10L12 15M12 15L17 10M12 15V3" stroke="#667eea" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                            </a>
+                                <div class="download-buttons">
+                                    <a href="/browse/{{ folder_index }}/{% if current_path %}{{ current_path }}/{% endif %}{{ item.name }}" class="download-btn standard" title="Standard download">
+                                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M21 15V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V15M7 10L12 15M12 15L17 10M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                        </svg>
+                                        Download
+                                    </a>
+                                    {% if item.size_bytes > 104857600 %}
+                                    <button onclick="startChunkedDownload({{ folder_index }}, '{% if current_path %}{{ current_path }}/{% endif %}{{ item.name }}', '{{ item.name }}', {{ item.size_bytes }})" class="download-btn chunked" title="Chunked download with resume support">
+                                        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M21 15V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V15M17 10L12 15M12 15L7 10M12 15V3" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                            <path d="M12 3V15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-dasharray="2 2"/>
+                                        </svg>
+                                        Chunked
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
                         {% endif %}
                     {% endfor %}
                 </ul>
@@ -445,6 +661,41 @@
                     <h3>This folder is empty</h3>
                 </div>
             {% endif %}
+        </div>
+    </div>
+
+    <!-- Chunked Download Modal -->
+    <div id="chunkedDownloadModal" class="chunked-download-modal">
+        <div class="chunked-modal-content">
+            <div class="chunked-modal-header">
+                <h3>Downloading File</h3>
+                <div id="downloadFilename" class="download-filename"></div>
+            </div>
+            <div class="chunked-modal-body">
+                <div class="download-progress">
+                    <div class="progress-info">
+                        <span id="downloadStatus">Initializing...</span>
+                        <span id="downloadPercent" class="progress-percent">0%</span>
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="downloadProgressFill" style="width: 0%;"></div>
+                    </div>
+                    <div class="chunk-details">
+                        <span id="chunkProgress">Chunk 0 of 0</span>
+                        <span id="downloadSpeed">0 MB/s</span>
+                    </div>
+                    <div class="download-stats">
+                        <span id="downloadedSize">0 MB / 0 MB</span>
+                        <span id="timeRemaining">Calculating...</span>
+                    </div>
+                </div>
+                <div id="downloadError" class="download-error"></div>
+            </div>
+            <div class="chunked-modal-footer">
+                <button onclick="pauseChunkedDownload()" id="pauseBtn" class="modal-action-btn pause">Pause</button>
+                <button onclick="resumeChunkedDownload()" id="resumeBtn" class="modal-action-btn resume" style="display: none;">Resume</button>
+                <button onclick="cancelChunkedDownload()" id="cancelBtn" class="modal-action-btn cancel">Cancel</button>
+            </div>
         </div>
     </div>
 
@@ -564,6 +815,422 @@
             xhr.open('POST', uploadUrl, true);
             xhr.send(formData);
         });
+
+        // ========== Chunked Download Implementation ==========
+
+        // Global state for chunked download
+        let chunkedDownloadState = {
+            active: false,
+            paused: false,
+            cancelled: false,
+            folderIndex: null,
+            filepath: null,
+            filename: null,
+            fileSize: 0,
+            fileEtag: null,
+            chunkSize: 1 * 1024 * 1024 * 1024, // 1GB - reduced from 2GB for VR headset memory limits
+            totalChunks: 0,
+            currentChunk: 0,
+            completedChunks: new Set(),
+            failedChunks: new Map(),
+            downloadedBytes: 0,
+            startTime: null,
+            lastProgressTime: null,
+            lastProgressBytes: 0,
+            downloadId: null,
+            db: null
+        };
+
+        // Initialize IndexedDB
+        async function initializeIndexedDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open('NetShareChunks', 1);
+
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => resolve(request.result);
+
+                request.onupgradeneeded = (event) => {
+                    const db = event.target.result;
+                    if (!db.objectStoreNames.contains('chunks')) {
+                        const objectStore = db.createObjectStore('chunks', { keyPath: ['downloadId', 'chunkIndex'] });
+                        objectStore.createIndex('downloadId', 'downloadId', { unique: false });
+                    }
+                };
+            });
+        }
+
+        // Format bytes to human-readable size
+        function formatBytes(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round((bytes / Math.pow(k, i)) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        // Format speed
+        function formatSpeed(bytesPerSecond) {
+            return formatBytes(bytesPerSecond) + '/s';
+        }
+
+        // Calculate time remaining
+        function calculateTimeRemaining(downloadedBytes, totalBytes, currentSpeed) {
+            if (currentSpeed === 0) return 'Calculating...';
+            const remainingBytes = totalBytes - downloadedBytes;
+            const seconds = Math.round(remainingBytes / currentSpeed);
+            if (seconds < 60) return seconds + ' seconds';
+            const minutes = Math.round(seconds / 60);
+            if (minutes < 60) return minutes + ' minutes';
+            const hours = Math.round(minutes / 60);
+            return hours + ' hours';
+        }
+
+        // Generate unique download ID
+        function generateDownloadId() {
+            return `download_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+        }
+
+        // Save download state to localStorage
+        function saveDownloadState() {
+            const state = {
+                downloadId: chunkedDownloadState.downloadId,
+                folderIndex: chunkedDownloadState.folderIndex,
+                filepath: chunkedDownloadState.filepath,
+                filename: chunkedDownloadState.filename,
+                fileSize: chunkedDownloadState.fileSize,
+                fileEtag: chunkedDownloadState.fileEtag,
+                chunkSize: chunkedDownloadState.chunkSize,
+                totalChunks: chunkedDownloadState.totalChunks,
+                completedChunks: Array.from(chunkedDownloadState.completedChunks),
+                lastUpdate: Date.now()
+            };
+            localStorage.setItem(`chunked_download_${chunkedDownloadState.downloadId}`, JSON.stringify(state));
+        }
+
+        // Load download state from localStorage
+        function loadDownloadState(downloadId) {
+            const stateJson = localStorage.getItem(`chunked_download_${downloadId}`);
+            if (!stateJson) return null;
+            try {
+                const state = JSON.parse(stateJson);
+                state.completedChunks = new Set(state.completedChunks);
+                return state;
+            } catch (e) {
+                console.error('Error loading download state:', e);
+                return null;
+            }
+        }
+
+        // Update progress UI
+        function updateProgressUI() {
+            const percent = chunkedDownloadState.totalChunks > 0 ?
+                Math.round((chunkedDownloadState.downloadedBytes / chunkedDownloadState.fileSize) * 100) : 0;
+
+            document.getElementById('downloadPercent').textContent = percent + '%';
+            document.getElementById('downloadProgressFill').style.width = percent + '%';
+            document.getElementById('chunkProgress').textContent =
+                `Chunk ${chunkedDownloadState.currentChunk} of ${chunkedDownloadState.totalChunks}`;
+            document.getElementById('downloadedSize').textContent =
+                `${formatBytes(chunkedDownloadState.downloadedBytes)} / ${formatBytes(chunkedDownloadState.fileSize)}`;
+
+            // Calculate speed
+            const now = Date.now();
+            if (chunkedDownloadState.lastProgressTime) {
+                const timeDiff = (now - chunkedDownloadState.lastProgressTime) / 1000; // seconds
+                const bytesDiff = chunkedDownloadState.downloadedBytes - chunkedDownloadState.lastProgressBytes;
+                if (timeDiff > 0) {
+                    const speed = bytesDiff / timeDiff;
+                    document.getElementById('downloadSpeed').textContent = formatSpeed(speed);
+                    document.getElementById('timeRemaining').textContent =
+                        calculateTimeRemaining(chunkedDownloadState.downloadedBytes, chunkedDownloadState.fileSize, speed);
+                }
+            }
+
+            chunkedDownloadState.lastProgressTime = now;
+            chunkedDownloadState.lastProgressBytes = chunkedDownloadState.downloadedBytes;
+        }
+
+        // Download a single chunk
+        async function downloadChunk(chunkIndex) {
+            const start = chunkIndex * chunkedDownloadState.chunkSize;
+            const end = Math.min(start + chunkedDownloadState.chunkSize - 1, chunkedDownloadState.fileSize - 1);
+            const chunkUrl = `/download-chunk/${chunkedDownloadState.folderIndex}/${chunkedDownloadState.filepath}`;
+
+            const response = await fetch(chunkUrl, {
+                headers: {
+                    'Range': `bytes=${start}-${end}`
+                }
+            });
+
+            if (response.status !== 206) {
+                throw new Error(`Failed to download chunk ${chunkIndex}: ${response.status} ${response.statusText}`);
+            }
+
+            const blob = await response.blob();
+
+            // Store chunk in IndexedDB
+            const transaction = chunkedDownloadState.db.transaction(['chunks'], 'readwrite');
+            const objectStore = transaction.objectStore('chunks');
+            await new Promise((resolve, reject) => {
+                const request = objectStore.put({
+                    downloadId: chunkedDownloadState.downloadId,
+                    chunkIndex: chunkIndex,
+                    data: blob,
+                    timestamp: Date.now(),
+                    size: blob.size
+                });
+                request.onsuccess = resolve;
+                request.onerror = () => reject(request.error);
+            });
+
+            return blob.size;
+        }
+
+        // Download all chunks sequentially
+        async function downloadAllChunks() {
+            for (let i = 0; i < chunkedDownloadState.totalChunks; i++) {
+                if (chunkedDownloadState.cancelled) {
+                    break;
+                }
+
+                while (chunkedDownloadState.paused) {
+                    await new Promise(resolve => setTimeout(resolve, 500));
+                }
+
+                if (chunkedDownloadState.completedChunks.has(i)) {
+                    continue; // Skip already downloaded chunks
+                }
+
+                chunkedDownloadState.currentChunk = i + 1;
+                document.getElementById('downloadStatus').textContent = `Downloading chunk ${i + 1}...`;
+
+                let retries = 0;
+                const maxRetries = 3;
+                let success = false;
+
+                while (!success && retries < maxRetries) {
+                    try {
+                        const bytesDownloaded = await downloadChunk(i);
+                        chunkedDownloadState.downloadedBytes += bytesDownloaded;
+                        chunkedDownloadState.completedChunks.add(i);
+                        chunkedDownloadState.failedChunks.delete(i);
+                        saveDownloadState();
+                        updateProgressUI();
+                        success = true;
+                    } catch (error) {
+                        retries++;
+                        console.error(`Error downloading chunk ${i}, retry ${retries}/${maxRetries}:`, error);
+
+                        if (retries < maxRetries) {
+                            // Exponential backoff: 1s, 2s, 4s
+                            await new Promise(resolve => setTimeout(resolve, Math.pow(2, retries - 1) * 1000));
+                        } else {
+                            chunkedDownloadState.failedChunks.set(i, retries);
+                            showError(`Failed to download chunk ${i + 1} after ${maxRetries} attempts. Click Resume to retry.`);
+                            chunkedDownloadState.paused = true;
+                            document.getElementById('pauseBtn').style.display = 'none';
+                            document.getElementById('resumeBtn').style.display = 'inline-block';
+                            return;
+                        }
+                    }
+                }
+            }
+
+            if (!chunkedDownloadState.cancelled && !chunkedDownloadState.paused) {
+                await reassembleFile();
+            }
+        }
+
+        // Reassemble file from chunks
+        async function reassembleFile() {
+            document.getElementById('downloadStatus').textContent = 'Reassembling file...';
+
+            try {
+                const transaction = chunkedDownloadState.db.transaction(['chunks'], 'readonly');
+                const objectStore = transaction.objectStore('chunks');
+                const chunks = [];
+
+                for (let i = 0; i < chunkedDownloadState.totalChunks; i++) {
+                    const request = objectStore.get([chunkedDownloadState.downloadId, i]);
+                    const chunk = await new Promise((resolve, reject) => {
+                        request.onsuccess = () => resolve(request.result);
+                        request.onerror = () => reject(request.error);
+                    });
+
+                    if (!chunk) {
+                        throw new Error(`Missing chunk ${i}`);
+                    }
+                    chunks.push(chunk.data);
+                }
+
+                // Combine all chunks
+                const blob = new Blob(chunks, { type: 'application/octet-stream' });
+
+                // Verify size
+                if (blob.size !== chunkedDownloadState.fileSize) {
+                    throw new Error(`File size mismatch: expected ${chunkedDownloadState.fileSize}, got ${blob.size}`);
+                }
+
+                // Trigger download
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = chunkedDownloadState.filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+
+                // Clean up
+                await cleanupDownload();
+
+                document.getElementById('downloadStatus').textContent = 'Download complete!';
+                setTimeout(() => {
+                    document.getElementById('chunkedDownloadModal').classList.remove('active');
+                }, 2000);
+
+            } catch (error) {
+                console.error('Error reassembling file:', error);
+                showError('Failed to reassemble file: ' + error.message);
+            }
+        }
+
+        // Clean up downloaded chunks and state
+        async function cleanupDownload() {
+            try {
+                // Delete chunks from IndexedDB
+                const transaction = chunkedDownloadState.db.transaction(['chunks'], 'readwrite');
+                const objectStore = transaction.objectStore('chunks');
+                const index = objectStore.index('downloadId');
+                const request = index.openCursor(IDBKeyRange.only(chunkedDownloadState.downloadId));
+
+                request.onsuccess = (event) => {
+                    const cursor = event.target.result;
+                    if (cursor) {
+                        cursor.delete();
+                        cursor.continue();
+                    }
+                };
+
+                // Remove state from localStorage
+                localStorage.removeItem(`chunked_download_${chunkedDownloadState.downloadId}`);
+            } catch (error) {
+                console.error('Error cleaning up download:', error);
+            }
+        }
+
+        // Show error message
+        function showError(message) {
+            const errorDiv = document.getElementById('downloadError');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+        }
+
+        // Hide error message
+        function hideError() {
+            const errorDiv = document.getElementById('downloadError');
+            errorDiv.classList.remove('show');
+        }
+
+        // Start chunked download
+        async function startChunkedDownload(folderIndex, filepath, filename, fileSize) {
+            try {
+                // Check for IndexedDB support
+                if (!window.indexedDB) {
+                    alert('Your browser does not support chunked downloads. Please use the standard download button.');
+                    return;
+                }
+
+                // Initialize state
+                chunkedDownloadState = {
+                    active: true,
+                    paused: false,
+                    cancelled: false,
+                    folderIndex: folderIndex,
+                    filepath: filepath,
+                    filename: filename,
+                    fileSize: fileSize,
+                    fileEtag: null,
+                    chunkSize: 1 * 1024 * 1024 * 1024,
+                    totalChunks: 0,
+                    currentChunk: 0,
+                    completedChunks: new Set(),
+                    failedChunks: new Map(),
+                    downloadedBytes: 0,
+                    startTime: Date.now(),
+                    lastProgressTime: null,
+                    lastProgressBytes: 0,
+                    downloadId: generateDownloadId(),
+                    db: null
+                };
+
+                // Initialize IndexedDB
+                chunkedDownloadState.db = await initializeIndexedDB();
+
+                // Fetch file metadata
+                const response = await fetch(`/file-info/${folderIndex}/${filepath}`);
+                const fileInfo = await response.json();
+
+                if (!fileInfo.success) {
+                    alert('Failed to get file information: ' + fileInfo.message);
+                    return;
+                }
+
+                chunkedDownloadState.fileEtag = fileInfo.etag;
+                chunkedDownloadState.totalChunks = fileInfo.total_chunks;
+                chunkedDownloadState.chunkSize = fileInfo.chunk_size;
+
+                // Show modal
+                document.getElementById('downloadFilename').textContent = filename;
+                document.getElementById('chunkedDownloadModal').classList.add('active');
+                document.getElementById('pauseBtn').style.display = 'inline-block';
+                document.getElementById('resumeBtn').style.display = 'none';
+                hideError();
+
+                // Start downloading
+                updateProgressUI();
+                await downloadAllChunks();
+
+            } catch (error) {
+                console.error('Error starting chunked download:', error);
+                showError('Failed to start download: ' + error.message);
+            }
+        }
+
+        // Pause chunked download
+        function pauseChunkedDownload() {
+            chunkedDownloadState.paused = true;
+            document.getElementById('pauseBtn').style.display = 'none';
+            document.getElementById('resumeBtn').style.display = 'inline-block';
+            document.getElementById('downloadStatus').textContent = 'Paused';
+            saveDownloadState();
+        }
+
+        // Resume chunked download
+        async function resumeChunkedDownload() {
+            chunkedDownloadState.paused = false;
+            document.getElementById('pauseBtn').style.display = 'inline-block';
+            document.getElementById('resumeBtn').style.display = 'none';
+            hideError();
+
+            // Continue downloading
+            await downloadAllChunks();
+        }
+
+        // Cancel chunked download
+        async function cancelChunkedDownload() {
+            if (!confirm('Are you sure you want to cancel this download? All progress will be lost.')) {
+                return;
+            }
+
+            chunkedDownloadState.cancelled = true;
+            chunkedDownloadState.active = false;
+
+            await cleanupDownload();
+
+            document.getElementById('chunkedDownloadModal').classList.remove('active');
+        }
+
     </script>
 </body>
 </html>

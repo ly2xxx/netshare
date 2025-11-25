@@ -65,6 +65,28 @@ class AppConfig:
     MAX_SHARED_FOLDERS = 20
 
 
+class ChunkedDownloadConfig:
+    """Chunked download configuration"""
+
+    # Chunk size for downloads (1GB in bytes) - reduced from 2GB for VR headset memory limits
+    CHUNK_SIZE = 1 * 1024 * 1024 * 1024
+
+    # Minimum file size to enable chunked download (100MB)
+    MIN_FILE_SIZE_FOR_CHUNKING = 100 * 1024 * 1024
+
+    # Maximum retry attempts per chunk
+    MAX_CHUNK_RETRIES = 3
+
+    # Timeout for chunk download in milliseconds (5 minutes)
+    CHUNK_TIMEOUT_MS = 300000
+
+    # Stream block size for reading file chunks (8KB)
+    STREAM_BLOCK_SIZE = 8192
+
+    # Enable chunked download feature
+    ENABLE_CHUNKED_DOWNLOADS = True
+
+
 # Validate configuration on import
 def validate_config():
     """Validate configuration settings"""

@@ -21,7 +21,7 @@ from flask import Flask, render_template, send_from_directory, abort, request, j
 
 # Import configuration
 try:
-    from netshare.config import SecurityConfig, AppConfig
+    from netshare.config import SecurityConfig, AppConfig, ChunkedDownloadConfig
 except ImportError:
     # Fallback if config.py is not available
     class SecurityConfig:
@@ -40,6 +40,14 @@ except ImportError:
         SERVER_NAME = "NetShare"
         VERSION = "1.0.0"
         ENABLE_ACCESS_LOG = True
+
+    class ChunkedDownloadConfig:
+        CHUNK_SIZE = 1 * 1024 * 1024 * 1024
+        MIN_FILE_SIZE_FOR_CHUNKING = 100 * 1024 * 1024
+        MAX_CHUNK_RETRIES = 3
+        CHUNK_TIMEOUT_MS = 300000
+        STREAM_BLOCK_SIZE = 8192
+        ENABLE_CHUNKED_DOWNLOADS = True
 
 # Try to import tkinter for GUI (optional on some systems)
 try:
@@ -116,17 +124,112 @@ def is_safe_path(base_path, target_path):
 def is_allowed_file(filename):
     """Check if file extension is allowed"""
     ext = os.path.splitext(filename)[1].lower()
-    
+
     # Check blocked extensions first
     if ext in SecurityConfig.BLOCKED_EXTENSIONS:
         logger.warning(f"Blocked file extension: {ext}")
         return False
-    
+
     # If allowed list is specified, check it
     if SecurityConfig.ALLOWED_EXTENSIONS:
         return ext in SecurityConfig.ALLOWED_EXTENSIONS
-    
+
     return True
+
+
+def parse_range_header(range_header, file_size):
+    """
+    Parse HTTP Range header and return (start, end) tuple.
+    Returns None if invalid.
+
+    Examples:
+    - "bytes=0-1023" -> (0, 1023)
+    - "bytes=1024-" -> (1024, file_size-1)
+    - "bytes=-1024" -> (file_size-1024, file_size-1)
+    """
+    import re
+
+    if not range_header or not range_header.startswith('bytes='):
+        return None
+
+    range_spec = range_header[6:]  # Remove 'bytes=' prefix
+
+    # Parse "start-end" format
+    match = re.match(r'^(\d*)-(\d*)$', range_spec)
+    if not match:
+        return None
+
+    start_str, end_str = match.groups()
+
+    # Handle different range formats
+    if start_str and end_str:
+        # "start-end"
+        start = int(start_str)
+        end = int(end_str)
+    elif start_str and not end_str:
+        # "start-" (from start to end of file)
+        start = int(start_str)
+        end = file_size - 1
+    elif not start_str and end_str:
+        # "-end" (last N bytes)
+        start = file_size - int(end_str)
+        end = file_size - 1
+    else:
+        # Invalid: both empty
+        return None
+
+    # Validate range
+    if start < 0 or end < 0 or start > end or start >= file_size:
+        return None
+
+    # Clamp end to file size
+    end = min(end, file_size - 1)
+
+    return (start, end)
+
+
+def generate_file_etag(filepath):
+    """
+    Generate ETag from file path and modification time.
+    Used to validate file hasn't changed during chunked download.
+
+    Returns: hash string like "5f3c9a8b2e1d"
+    """
+    import hashlib
+
+    try:
+        stat_info = os.stat(filepath)
+        # Combine filepath and modification time for uniqueness
+        etag_data = f"{filepath}:{stat_info.st_mtime}:{stat_info.st_size}"
+        etag_hash = hashlib.md5(etag_data.encode()).hexdigest()[:12]
+        return etag_hash
+    except OSError:
+        return None
+
+
+def stream_file_chunk(filepath, start, end):
+    """
+    Generator to stream file chunk from start to end byte positions.
+    Reads in blocks to minimize memory usage.
+
+    Yields: bytes
+    """
+    block_size = ChunkedDownloadConfig.STREAM_BLOCK_SIZE
+    bytes_to_read = end - start + 1
+
+    try:
+        with open(filepath, 'rb') as f:
+            f.seek(start)
+            while bytes_to_read > 0:
+                chunk_size = min(block_size, bytes_to_read)
+                data = f.read(chunk_size)
+                if not data:
+                    break
+                bytes_to_read -= len(data)
+                yield data
+    except IOError as e:
+        logger.error(f"Error streaming file chunk: {str(e)}")
+        raise
 
 
 def get_system_drives():
@@ -476,6 +579,148 @@ def browse(folder_index, subpath=''):
                          current_path=subpath,
                          breadcrumbs=breadcrumbs,
                          items=items)
+
+
+@app.route('/file-info/<int:folder_index>/<path:subpath>')
+@rate_limit
+def file_info(folder_index, subpath=''):
+    """Get file metadata for chunked download planning"""
+    if folder_index >= len(config.shared_folders):
+        logger.warning(f"Invalid folder index: {folder_index}")
+        return jsonify({'success': False, 'message': 'Invalid folder index'}), 404
+
+    base_folder = config.shared_folders[folder_index]
+    target_path = os.path.join(base_folder, subpath)
+
+    # Security: ensure we're still within the shared folder
+    if not is_safe_path(base_folder, target_path):
+        logger.warning(f"Path traversal attempt: {target_path}")
+        return jsonify({'success': False, 'message': 'Invalid path'}), 403
+
+    if not os.path.exists(target_path):
+        return jsonify({'success': False, 'message': 'File not found'}), 404
+
+    if not os.path.isfile(target_path):
+        return jsonify({'success': False, 'message': 'Not a file'}), 400
+
+    # Check if file download is allowed
+    if not SecurityConfig.ALLOW_FILE_DOWNLOAD:
+        logger.warning(f"File download disabled: {target_path}")
+        return jsonify({'success': False, 'message': 'File download disabled'}), 403
+
+    # Check file extension
+    if not is_allowed_file(target_path):
+        logger.warning(f"Blocked file access: {target_path}")
+        return jsonify({'success': False, 'message': 'File type not allowed'}), 403
+
+    # Get file information
+    try:
+        file_size = os.path.getsize(target_path)
+        file_mtime = os.path.getmtime(target_path)
+        file_etag = generate_file_etag(target_path)
+
+        # Calculate number of chunks
+        chunk_size = ChunkedDownloadConfig.CHUNK_SIZE
+        total_chunks = (file_size + chunk_size - 1) // chunk_size  # Ceiling division
+
+        return jsonify({
+            'success': True,
+            'filename': os.path.basename(target_path),
+            'size_bytes': file_size,
+            'size_formatted': format_size(file_size),
+            'modified_time': file_mtime,
+            'etag': file_etag,
+            'chunk_size': chunk_size,
+            'total_chunks': total_chunks
+        }), 200
+
+    except Exception as e:
+        logger.error(f"Error getting file info: {str(e)}")
+        return jsonify({'success': False, 'message': 'Internal server error'}), 500
+
+
+@app.route('/download-chunk/<int:folder_index>/<path:subpath>')
+@rate_limit
+def download_chunk(folder_index, subpath=''):
+    """Serve file chunks with HTTP Range request support"""
+    from flask import Response
+
+    if folder_index >= len(config.shared_folders):
+        logger.warning(f"Invalid folder index: {folder_index}")
+        abort(404)
+
+    base_folder = config.shared_folders[folder_index]
+    target_path = os.path.join(base_folder, subpath)
+
+    # Security: ensure we're still within the shared folder
+    if not is_safe_path(base_folder, target_path):
+        logger.warning(f"Path traversal attempt: {target_path}")
+        abort(403)
+
+    if not os.path.exists(target_path):
+        abort(404)
+
+    if not os.path.isfile(target_path):
+        abort(400)
+
+    # Check if file download is allowed
+    if not SecurityConfig.ALLOW_FILE_DOWNLOAD:
+        logger.warning(f"File download disabled: {target_path}")
+        abort(403)
+
+    # Check file extension
+    if not is_allowed_file(target_path):
+        logger.warning(f"Blocked file access: {target_path}")
+        abort(403)
+
+    # Check file size
+    file_size = os.path.getsize(target_path)
+    if file_size > SecurityConfig.MAX_FILE_SIZE:
+        logger.warning(f"File too large: {target_path} ({file_size} bytes)")
+        abort(413)  # Request Entity Too Large
+
+    # Parse Range header
+    range_header = request.headers.get('Range')
+    if not range_header:
+        logger.warning(f"Missing Range header in chunk download request")
+        abort(400)  # Bad Request
+
+    byte_range = parse_range_header(range_header, file_size)
+    if byte_range is None:
+        logger.warning(f"Invalid Range header: {range_header}")
+        abort(416)  # Range Not Satisfiable
+
+    start, end = byte_range
+    content_length = end - start + 1
+
+    # Generate ETag for file validation
+    etag = generate_file_etag(target_path)
+
+    logger.info(f"Serving chunk {start}-{end}/{file_size} of {target_path} to {request.remote_addr}")
+
+    # Create response with chunk data
+    try:
+        response = Response(
+            stream_file_chunk(target_path, start, end),
+            status=206,  # Partial Content
+            mimetype='application/octet-stream',
+            direct_passthrough=True
+        )
+
+        # Set headers for partial content
+        response.headers['Content-Range'] = f'bytes {start}-{end}/{file_size}'
+        response.headers['Accept-Ranges'] = 'bytes'
+        response.headers['Content-Length'] = str(content_length)
+        response.headers['Cache-Control'] = 'no-cache'
+
+        if etag:
+            response.headers['ETag'] = etag
+
+        return response
+
+    except Exception as e:
+        logger.error(f"Error serving chunk: {str(e)}")
+        abort(500)
 
 
 @app.route('/upload/<int:folder_index>', methods=['POST'])

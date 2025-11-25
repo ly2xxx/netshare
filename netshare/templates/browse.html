@@ -828,7 +828,7 @@
             filename: null,
             fileSize: 0,
             fileEtag: null,
-            chunkSize: 1 * 1024 * 1024 * 1024, // 1GB - reduced from 2GB for VR headset memory limits
+            chunkSize: 1 * 1024 * 1024 * 1024, // 1GB - optimized for VR headset memory
             totalChunks: 0,
             currentChunk: 0,
             completedChunks: new Set(),
@@ -838,26 +838,8 @@
             lastProgressTime: null,
             lastProgressBytes: 0,
             downloadId: null,
-            db: null
+            blobParts: []  // In-memory array for streaming reassembly (avoids IndexedDB quota)
         };
-
-        // Initialize IndexedDB
-        async function initializeIndexedDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open('NetShareChunks', 1);
-
-                request.onerror = () => reject(request.error);
-                request.onsuccess = () => resolve(request.result);
-
-                request.onupgradeneeded = (event) => {
-                    const db = event.target.result;
-                    if (!db.objectStoreNames.contains('chunks')) {
-                        const objectStore = db.createObjectStore('chunks', { keyPath: ['downloadId', 'chunkIndex'] });
-                        objectStore.createIndex('downloadId', 'downloadId', { unique: false });
-                    }
-                };
-            });
-        }
 
         // Format bytes to human-readable size
         function formatBytes(bytes) {
@@ -950,7 +932,7 @@
             chunkedDownloadState.lastProgressBytes = chunkedDownloadState.downloadedBytes;
         }
 
-        // Download a single chunk
+        // Download a single chunk (streaming reassembly - returns blob directly)
         async function downloadChunk(chunkIndex) {
             const start = chunkIndex * chunkedDownloadState.chunkSize;
             const end = Math.min(start + chunkedDownloadState.chunkSize - 1, chunkedDownloadState.fileSize - 1);
@@ -966,27 +948,11 @@
                 throw new Error(`Failed to download chunk ${chunkIndex}: ${response.status} ${response.statusText}`);
             }
 
-            const blob = await response.blob();
-
-            // Store chunk in IndexedDB
-            const transaction = chunkedDownloadState.db.transaction(['chunks'], 'readwrite');
-            const objectStore = transaction.objectStore('chunks');
-            await new Promise((resolve, reject) => {
-                const request = objectStore.put({
-                    downloadId: chunkedDownloadState.downloadId,
-                    chunkIndex: chunkIndex,
-                    data: blob,
-                    timestamp: Date.now(),
-                    size: blob.size
-                });
-                request.onsuccess = resolve;
-                request.onerror = () => reject(request.error);
-            });
-
-            return blob.size;
+            // Return blob directly without storing in IndexedDB
+            return await response.blob();
         }
 
-        // Download all chunks sequentially
+        // Download all chunks sequentially (streaming reassembly)
         async function downloadAllChunks() {
             for (let i = 0; i < chunkedDownloadState.totalChunks; i++) {
                 if (chunkedDownloadState.cancelled) {
@@ -1010,8 +976,10 @@
 
                 while (!success && retries < maxRetries) {
                     try {
-                        const bytesDownloaded = await downloadChunk(i);
-                        chunkedDownloadState.downloadedBytes += bytesDownloaded;
+                        const blob = await downloadChunk(i);
+                        // Append blob to in-memory array (streaming reassembly)
+                        chunkedDownloadState.blobParts.push(blob);
+                        chunkedDownloadState.downloadedBytes += blob.size;
                         chunkedDownloadState.completedChunks.add(i);
                         chunkedDownloadState.failedChunks.delete(i);
                         saveDownloadState();
@@ -1041,30 +1009,13 @@
             }
         }
 
-        // Reassemble file from chunks
+        // Reassemble file from in-memory blob array (streaming reassembly)
         async function reassembleFile() {
-            document.getElementById('downloadStatus').textContent = 'Reassembling file...';
+            document.getElementById('downloadStatus').textContent = 'Finalizing download...';
 
             try {
-                const transaction = chunkedDownloadState.db.transaction(['chunks'], 'readonly');
-                const objectStore = transaction.objectStore('chunks');
-                const chunks = [];
-
-                for (let i = 0; i < chunkedDownloadState.totalChunks; i++) {
-                    const request = objectStore.get([chunkedDownloadState.downloadId, i]);
-                    const chunk = await new Promise((resolve, reject) => {
-                        request.onsuccess = () => resolve(request.result);
-                        request.onerror = () => reject(request.error);
-                    });
-
-                    if (!chunk) {
-                        throw new Error(`Missing chunk ${i}`);
-                    }
-                    chunks.push(chunk.data);
-                }
-
-                // Combine all chunks
-                const blob = new Blob(chunks, { type: 'application/octet-stream' });
+                // Combine all blob parts (already in memory)
+                const blob = new Blob(chunkedDownloadState.blobParts, { type: 'application/octet-stream' });
 
                 // Verify size
                 if (blob.size !== chunkedDownloadState.fileSize) {
@@ -1082,7 +1033,7 @@
                 URL.revokeObjectURL(url);
 
                 // Clean up
-                await cleanupDownload();
+                localStorage.removeItem(`chunked_download_${chunkedDownloadState.downloadId}`);
 
                 document.getElementById('downloadStatus').textContent = 'Download complete!';
                 setTimeout(() => {
@@ -1095,25 +1046,14 @@
             }
         }
 
-        // Clean up downloaded chunks and state
-        async function cleanupDownload() {
+        // Clean up download state (streaming reassembly - no IndexedDB cleanup needed)
+        function cleanupDownload() {
             try {
-                // Delete chunks from IndexedDB
-                const transaction = chunkedDownloadState.db.transaction(['chunks'], 'readwrite');
-                const objectStore = transaction.objectStore('chunks');
-                const index = objectStore.index('downloadId');
-                const request = index.openCursor(IDBKeyRange.only(chunkedDownloadState.downloadId));
-
-                request.onsuccess = (event) => {
-                    const cursor = event.target.result;
-                    if (cursor) {
-                        cursor.delete();
-                        cursor.continue();
-                    }
-                };
-
                 // Remove state from localStorage
                 localStorage.removeItem(`chunked_download_${chunkedDownloadState.downloadId}`);
+
+                // Clear blobParts array to free memory
+                chunkedDownloadState.blobParts = [];
             } catch (error) {
                 console.error('Error cleaning up download:', error);
             }
@@ -1135,8 +1075,8 @@
         // Start chunked download
         async function startChunkedDownload(folderIndex, filepath, filename, fileSize) {
             try {
-                // Check for IndexedDB support
-                if (!window.indexedDB) {
+                // Check for Fetch API and Blob support (required for streaming reassembly)
+                if (!window.fetch || !window.Blob) {
                     alert('Your browser does not support chunked downloads. Please use the standard download button.');
                     return;
                 }
@@ -1161,11 +1101,8 @@
                     lastProgressTime: null,
                     lastProgressBytes: 0,
                     downloadId: generateDownloadId(),
-                    db: null
+                    blobParts: []  // In-memory array for streaming reassembly
                 };
-
-                // Initialize IndexedDB
-                chunkedDownloadState.db = await initializeIndexedDB();
 
                 // Fetch file metadata
                 const response = await fetch(`/file-info/${folderIndex}/${filepath}`);
@@ -1218,7 +1155,7 @@
         }
 
         // Cancel chunked download
-        async function cancelChunkedDownload() {
+        function cancelChunkedDownload() {
             if (!confirm('Are you sure you want to cancel this download? All progress will be lost.')) {
                 return;
             }
@@ -1226,7 +1163,7 @@
             chunkedDownloadState.cancelled = true;
             chunkedDownloadState.active = false;
 
-            await cleanupDownload();
+            cleanupDownload();
 
             document.getElementById('chunkedDownloadModal').classList.remove('active');
         }

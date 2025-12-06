@@ -320,8 +320,16 @@ def get_local_ip():
         return "127.0.0.1"
 
 
-def generate_qr_code(url):
-    """Generate QR code for the given URL"""
+def generate_qr_code(url, output_path=None):
+    """Generate QR code for the given URL
+
+    Args:
+        url: The URL to encode in the QR code
+        output_path: Optional custom output path (if None, uses default netshare_qr.png in module directory)
+
+    Returns:
+        str: Path to the generated QR code PNG file
+    """
     qr = qrcode.QRCode(
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
@@ -330,12 +338,23 @@ def generate_qr_code(url):
     )
     qr.add_data(url)
     qr.make(fit=True)
-    
+
+    # Determine output path
+    if output_path is None:
+        qr_path = os.path.join(os.path.dirname(__file__), 'netshare_qr.png')
+    else:
+        # Convert relative paths to absolute based on current working directory
+        qr_path = output_path if os.path.isabs(output_path) else os.path.abspath(output_path)
+
+    # Ensure directory exists
+    qr_dir = os.path.dirname(qr_path)
+    if qr_dir:  # Only create directory if path has a directory component
+        os.makedirs(qr_dir, exist_ok=True)
+
     # Save as PNG
     img = qr.make_image(fill_color="black", back_color="white")
-    qr_path = os.path.join(os.path.dirname(__file__), 'netshare_qr.png')
     img.save(qr_path)
-    
+
     # Print to terminal
     print("\n" + "="*50)
     print("Scan this QR code with your mobile device:")
@@ -343,7 +362,7 @@ def generate_qr_code(url):
     qr.print_ascii(invert=True)
     print("="*50)
     print(f"QR code saved to: {qr_path}")
-    
+
     return qr_path
 
 
@@ -838,6 +857,8 @@ Examples:
   netshare --gui                    # Use GUI to select folders
   netshare --folder /path/to/share  # Share specific folder
   netshare --folder "C:\\Users\\Documents" --port 8000
+  netshare --url https://example.com                    # Generate QR code for URL
+  netshare --url https://example.com --output qr.png   # Generate QR with custom filename
         """
     )
     
@@ -847,8 +868,40 @@ Examples:
                        help='Folder to share (can be specified multiple times)')
     parser.add_argument('--port', '-p', type=int, default=5000,
                        help='Port to run server on (default: 5000)')
-    
+    parser.add_argument('--url', '-u', type=str, default=None,
+                       help='Generate QR code for the given URL (standalone mode)')
+    parser.add_argument('--output', '-o', type=str, default=None,
+                       help='Output path for QR code PNG file (default: netshare_qr.png)')
+
     args = parser.parse_args()
+
+    # Validate --output requires --url
+    if args.output and not args.url:
+        print("Error: --output flag requires --url flag")
+        print("Use: netshare --url <URL> --output <filename>")
+        sys.exit(1)
+
+    # Handle URL-only mode (standalone QR generation)
+    if args.url:
+        # Validate that no conflicting flags were specified
+        if args.gui or args.folder or args.port != 5000:
+            print("Error: --url flag cannot be combined with --folder, --gui, or --port")
+            print("Use --url only for standalone QR code generation.")
+            sys.exit(1)
+
+        # Generate QR code for the provided URL
+        try:
+            output_path = args.output if args.output else 'netshare_qr.png'
+            qr_path = generate_qr_code(args.url, output_path=output_path)
+            print(f"\nQR code generated successfully!")
+            print(f"URL: {args.url}")
+            print(f"Saved to: {qr_path}")
+            sys.exit(0)
+        except Exception as e:
+            print(f"Error generating QR code: {e}")
+            import traceback
+            traceback.print_exc()
+            sys.exit(1)
 
     # Try to load folders from saved config first
     load_folders_from_file()

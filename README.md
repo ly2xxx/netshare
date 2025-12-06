@@ -32,9 +32,10 @@ pip install netshare
 Then run it with:
 
 ```bash
-netshare --gui              # GUI mode
-netshare --folder /path     # Specify folder
-netshare --help             # Show all options
+netshare --gui                              # GUI mode
+netshare --folder /path                     # Specify folder
+netshare --url https://example.com          # Generate QR code for any URL
+netshare --help                             # Show all options
 ```
 
 ### From Source
@@ -104,6 +105,23 @@ netshare
 
 Follow the prompts to enter folder paths.
 
+### Method 4: Standalone QR Code Generation
+
+Generate a QR code for any URL without starting a file server:
+
+```bash
+# Generate QR code with default filename (netshare_qr.png)
+netshare --url https://example.com
+
+# Generate QR code with custom output filename
+netshare --url https://example.com --output qr.png
+
+# Another example with different filename
+netshare --url https://example.com --output example.png
+```
+
+This is useful for creating QR codes for websites, shared links, or any other URLs.
+
 ## 📖 Detailed Usage
 
 ### Command Line Options
@@ -113,14 +131,19 @@ netshare [options]
 
 Options:
   --gui                 Use GUI to select folders
-  --folder FOLDER       Folder to share (can be used multiple times)
-  --port PORT          Port to run server on (default: 5000)
-  -h, --help           Show help message
+  --folder, -f FOLDER   Folder to share (can be specified multiple times)
+  --port, -p PORT       Port to run server on (default: 5000)
+  --url, -u URL         Generate QR code for the given URL (standalone mode)
+  --output, -o PATH     Output path for QR code PNG file (default: netshare_qr.png)
+  -h, --help            Show help message
 
 Examples:
-  netshare --gui                                    # GUI mode
-  netshare --folder /path/to/share                  # Share single folder
-  netshare --folder "C:\Documents" --folder "C:\Pictures" --port 8000   # Multiple folders, custom port
+  netshare --gui                                       # Use GUI to select folders
+  netshare --folder /path/to/share                     # Share specific folder
+  netshare --folder "C:\Users\Documents" --port 8000
+  netshare --url https://example.com                   # Generate QR code for URL
+  netshare --url https://example.com --output qr.png   # Generate QR with custom filename
+  netshare --url https://example.com --output example.png
 ```
 
 ### Accessing Shared Files

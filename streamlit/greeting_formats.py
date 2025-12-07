@@ -13,7 +13,6 @@ def create_holiday_greeting(
     from_name: str,
     to_name: str,
     message: str,
-    occasion: str = "Holiday 2025",
     theme: str = "general"
 ) -> Dict:
     """
@@ -23,19 +22,15 @@ def create_holiday_greeting(
         from_name: Sender's name
         to_name: Recipient's name
         message: Greeting message
-        occasion: Holiday/occasion type
         theme: Visual theme identifier
 
     Returns:
         Dictionary containing greeting data
     """
     return {
-        "v": "1.0",
-        "type": "greeting",
+        "message": message,
         "from": from_name,
         "to": to_name,
-        "occasion": occasion,
-        "message": message,
         "theme": theme,
         "created": datetime.utcnow().isoformat()
     }
@@ -56,28 +51,21 @@ def compact_greeting(payload: Dict) -> str:
 
 def parse_greeting(qr_data: str) -> Optional[Dict]:
     """
-    Parse and validate greeting data from QR code
-
-    Args:
-        qr_data: String data from QR code
-
-    Returns:
-        Parsed greeting dictionary or None if invalid
+    Parse raw text QR code into a greeting structure
     """
-    try:
-        data = json.loads(qr_data)
-
-        # Validate required fields
-        required_fields = ['v', 'type', 'from', 'to', 'message']
-        if not all(field in data for field in required_fields):
-            return None
-
-        if data.get('type') != 'greeting':
-            return None
-
-        return data
-    except (json.JSONDecodeError, TypeError):
+    if not qr_data:
         return None
+        
+    # Return structure compliant with expected app format, but with defaults
+    return {
+        "v": "1.0",
+        "type": "greeting",
+        "from": "", # Not stored in QR
+        "to": "",   # Not stored in QR
+        "message": qr_data,
+        "theme": "general",
+        "created": datetime.utcnow().isoformat()
+    }
 
 
 def format_greeting_display(greeting: Dict) -> str:
@@ -91,12 +79,11 @@ def format_greeting_display(greeting: Dict) -> str:
         Formatted string for display
     """
     lines = [
-        f"From: {greeting.get('from', 'Unknown')}",
-        f"To: {greeting.get('to', 'Unknown')}",
-        f"Occasion: {greeting.get('occasion', 'N/A')}",
         "",
         greeting.get('message', ''),
         "",
+        f"From: {greeting.get('from', 'Unknown')}",
+        f"To: {greeting.get('to', 'Unknown')}",
         f"Theme: {greeting.get('theme', 'general')}",
         f"Created: {greeting.get('created', 'Unknown')}"
     ]

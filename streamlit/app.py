@@ -116,22 +116,7 @@ def create_greeting_tab():
             key="greeting_to_name"
         )
 
-        occasion = st.selectbox(
-            "Occasion",
-            [
-                "Christmas 2025",
-                "New Year 2026",
-                "Holiday Season 2025",
-                "Birthday",
-                "Wedding",
-                "Anniversary",
-                "Thank You",
-                "Custom"
-            ]
-        )
 
-        if occasion == "Custom":
-            occasion = st.text_input("Custom Occasion", placeholder="Enter custom occasion", key="custom_occasion")
 
         theme = st.selectbox(
             "Theme",
@@ -167,7 +152,7 @@ def create_greeting_tab():
 
         if generate_btn:
             # Debug: Check what values we received
-            st.write(f"Debug - from_name: '{from_name}', to_name: '{to_name}', message: '{message}'")
+            # st.write(f"Debug - from_name: '{from_name}', to_name: '{to_name}', message: '{message}'")
 
             if not from_name or not to_name or not message:
                 st.error("Please fill in all required fields (From, To, and Message)")
@@ -177,7 +162,6 @@ def create_greeting_tab():
                     from_name=from_name,
                     to_name=to_name,
                     message=message,
-                    occasion=occasion,
                     theme=theme
                 )
 
@@ -215,8 +199,9 @@ def create_greeting_tab():
                 )
 
                 # Show JSON data
-                with st.expander("View JSON Data"):
-                    st.code(json.dumps(greeting, indent=2), language='json')
+                # Show raw data (Removed as it's now just the message)
+                # with st.expander("View Greeting Data"):
+                #     st.text(greeting_json)
 
 
 
@@ -270,19 +255,20 @@ def scan_greeting_tab():
                         if greeting:
                             # Display formatted greeting
                             st.markdown('<div class="greeting-box">', unsafe_allow_html=True)
-                            st.write(f"**From:** {greeting['from']}")
-                            st.write(f"**To:** {greeting['to']}")
-                            st.write(f"**Occasion:** {greeting['occasion']}")
-                            st.markdown("---")
+                            if greeting['from']: st.write(f"**From:** {greeting['from']}")
+                            if greeting['to']: st.write(f"**To:** {greeting['to']}")
+                            # st.markdown("---") 
                             st.write(greeting['message'])
-                            st.markdown("---")
-                            st.caption(f"Theme: {greeting.get('theme', 'general')}")
-                            st.caption(f"Created: {greeting.get('created', 'Unknown')}")
+                            # st.markdown("---")
+                            # st.caption(f"Theme: {greeting.get('theme', 'general')}")
+                            # st.caption(f"Created: {greeting.get('created', 'Unknown')}")
+                            st.markdown('</div>', unsafe_allow_html=True)
                             st.markdown('</div>', unsafe_allow_html=True)
 
                             # Show raw data
-                            with st.expander("View Raw Data"):
-                                st.code(json.dumps(greeting, indent=2), language='json')
+                            # Show raw data (Removed)
+                            # with st.expander("View Raw Data"):
+                            #    st.text(qr_data)
                         else:
                             st.warning("This QR code doesn't contain a valid greeting format.")
                             st.write("**Decoded data:**")
@@ -334,7 +320,6 @@ def examples_tab():
             "title": "🎄 Christmas Greeting",
             "from": "Alice",
             "to": "Bob",
-            "occasion": "Christmas 2025",
             "theme": "snowflake",
             "message": "Merry Christmas! Wishing you joy and happiness this season. Thank you for being a wonderful friend!"
         },
@@ -342,7 +327,6 @@ def examples_tab():
             "title": "🎆 New Year Message",
             "from": "Bob",
             "to": "Future Me",
-            "occasion": "New Year 2026",
             "theme": "fireworks",
             "message": "2025 was incredible! Here's to growth and new adventures in 2026!"
         },
@@ -350,7 +334,6 @@ def examples_tab():
             "title": "💍 Wedding Save the Date",
             "from": "Emma & James",
             "to": "Friends and Family",
-            "occasion": "Wedding Announcement",
             "theme": "champagne",
             "message": "We're getting married! Save the date: June 15, 2026. More details to follow!"
         }
@@ -363,7 +346,6 @@ def examples_tab():
             with col1:
                 st.write(f"**From:** {example['from']}")
                 st.write(f"**To:** {example['to']}")
-                st.write(f"**Occasion:** {example['occasion']}")
                 st.write(f"**Theme:** {example['theme']}")
                 st.markdown("---")
                 st.write(example['message'])
@@ -374,7 +356,6 @@ def examples_tab():
                     from_name=example['from'],
                     to_name=example['to'],
                     message=example['message'],
-                    occasion=example['occasion'],
                     theme=example['theme']
                 )
                 greeting_json = compact_greeting(greeting)

@@ -6,7 +6,7 @@ A Streamlit app for creating and reading holiday greeting QR codes
 
 import streamlit as st
 import qrcode
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 import io
 import json
 from datetime import datetime
@@ -27,6 +27,18 @@ from greeting_formats import (
     format_greeting_display,
     get_greeting_stats
 )
+
+# Theme to emoji mapping
+THEME_ICONS = {
+    "snowflake": "❄️",
+    "fireworks": "🎆",
+    "lights": "✨",
+    "stars": "⭐",
+    "confetti": "🎉",
+    "champagne": "🥂",
+    "hearts": "❤️",
+    "general": None  # No icon for general theme
+}
 
 # Page config
 st.set_page_config(
@@ -63,7 +75,55 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-def generate_qr_code(data: str, error_correction=qrcode.constants.ERROR_CORRECT_H) -> Image.Image:
+def create_emoji_icon(emoji: str, size: int = 100) -> Image.Image:
+    """
+    Create a PIL Image from an emoji character
+
+    Args:
+        emoji: Emoji character (e.g., "❄️")
+        size: Icon size in pixels
+
+    Returns:
+        PIL Image with transparent background
+    """
+    # Create image with transparent background
+    img = Image.new('RGBA', (size, size), (255, 255, 255, 0))
+    draw = ImageDraw.Draw(img)
+
+    # Try to use a font that supports emojis
+    try:
+        # On Windows, Segoe UI Emoji supports emojis
+        font = ImageFont.truetype("seguiemj.ttf", int(size * 0.8))
+    except:
+        try:
+            # Alternative emoji fonts (Mac)
+            font = ImageFont.truetype("/System/Library/Fonts/Apple Color Emoji.ttc", int(size * 0.8))
+        except:
+            try:
+                # Alternative emoji fonts (Linux)
+                font = ImageFont.truetype("NotoColorEmoji.ttf", int(size * 0.8))
+            except:
+                # Fallback to default font (won't render emojis well)
+                font = ImageFont.load_default()
+
+    # Calculate text position to center it
+    try:
+        bbox = draw.textbbox((0, 0), emoji, font=font)
+        text_width = bbox[2] - bbox[0]
+        text_height = bbox[3] - bbox[1]
+        x = (size - text_width) // 2 - bbox[0]
+        y = (size - text_height) // 2 - bbox[1]
+    except:
+        # Fallback positioning if textbbox not available
+        x, y = size // 4, size // 4
+
+    # Draw emoji
+    draw.text((x, y), emoji, font=font, embedded_color=True)
+
+    return img
+
+
+def generate_qr_code(data: str, theme: str = "general", error_correction=qrcode.constants.ERROR_CORRECT_H) -> Image.Image:
     """
     Generate QR code from data string
 
@@ -86,6 +146,43 @@ def generate_qr_code(data: str, error_correction=qrcode.constants.ERROR_CORRECT_
     img = qr.make_image(fill_color="black", back_color="white")
     # Convert qrcode.image.pil.PilImage to standard PIL.Image.Image
     pil_img = img.convert('RGB')
+
+    # Add theme icon if applicable
+    if theme in THEME_ICONS and THEME_ICONS[theme]:
+        emoji = THEME_ICONS[theme]
+        qr_width, qr_height = pil_img.size
+
+        # Icon should be ~20-25% of QR code size (safe margin under 30%)
+        icon_size = int(min(qr_width, qr_height) * 0.22)
+
+        try:
+            # Create emoji icon
+            icon = create_emoji_icon(emoji, icon_size)
+
+            # Calculate center position
+            icon_pos = (
+                (qr_width - icon_size) // 2,
+                (qr_height - icon_size) // 2
+            )
+
+            # Create white background circle for better contrast
+            background = Image.new('RGBA', (icon_size, icon_size), (255, 255, 255, 0))
+            draw = ImageDraw.Draw(background)
+            draw.ellipse([0, 0, icon_size, icon_size], fill=(255, 255, 255, 255))
+
+            # Convert pil_img to RGBA for pasting
+            pil_img = pil_img.convert('RGBA')
+
+            # Paste white circle, then icon
+            pil_img.paste(background, icon_pos, background)
+            pil_img.paste(icon, icon_pos, icon)
+
+            # Convert back to RGB
+            pil_img = pil_img.convert('RGB')
+        except Exception as e:
+            # If icon embedding fails, just return plain QR code
+            print(f"Warning: Could not embed icon for theme '{theme}': {e}")
+
     return pil_img
 
 
@@ -171,8 +268,8 @@ def create_greeting_tab():
                 # Get statistics
                 stats = get_greeting_stats(greeting_json)
 
-                # Generate QR code
-                qr_img = generate_qr_code(greeting_json)
+                # Generate QR code with theme
+                qr_img = generate_qr_code(greeting_json, theme=theme)
 
                 # Display QR code
                 st.image(qr_img, caption=f"Greeting QR Code for {to_name}", width='stretch')
@@ -359,7 +456,7 @@ def examples_tab():
                     theme=example['theme']
                 )
                 greeting_json = compact_greeting(greeting)
-                qr_img = generate_qr_code(greeting_json)
+                qr_img = generate_qr_code(greeting_json, theme=example['theme'])
                 st.image(qr_img, caption="QR Code", width='stretch')
 
 

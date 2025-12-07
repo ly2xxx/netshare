@@ -86,8 +86,10 @@ def create_emoji_icon(emoji: str, size: int = 100) -> Image.Image:
     Returns:
         PIL Image with transparent background
     """
-    # Create image with transparent background
-    img = Image.new('RGBA', (size, size), (255, 255, 255, 0))
+    # Create temporary canvas to verify system fonts and get exact bounds
+    # Use a larger size to avoid clipping
+    canvas_size = int(size * 1.5)
+    img = Image.new('RGBA', (canvas_size, canvas_size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
 
     # Try to use a font that supports emojis
@@ -106,21 +108,36 @@ def create_emoji_icon(emoji: str, size: int = 100) -> Image.Image:
                 # Fallback to default font (won't render emojis well)
                 font = ImageFont.load_default()
 
-    # Calculate text position to center it
+    # Draw emoji roughly in the middle
+    # We use getbbox() later so exact position doesn't matter as long as it's not clipped
     try:
-        bbox = draw.textbbox((0, 0), emoji, font=font)
-        text_width = bbox[2] - bbox[0]
-        text_height = bbox[3] - bbox[1]
-        x = (size - text_width) // 2 - bbox[0]
-        y = (size - text_height) // 2 - bbox[1]
-    except:
-        # Fallback positioning if textbbox not available
-        x, y = size // 4, size // 4
+        draw.text((canvas_size//4, canvas_size//4), emoji, font=font, embedded_color=True)
+    except Exception:
+         # Fallback for systems/PIL versions without embedded_color support
+         draw.text((canvas_size//4, canvas_size//4), emoji, font=font, fill="black")
 
-    # Draw emoji
-    draw.text((x, y), emoji, font=font, embedded_color=True)
+    # Get bounding box of the actual rendered pixels
+    bbox = img.getbbox()
 
-    return img
+    final_img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
+
+    if bbox:
+        # Crop to the actual emoji
+        icon = img.crop(bbox)
+        
+        # Center in the final image
+        icon_w, icon_h = icon.size
+        x = (size - icon_w) // 2
+        y = (size - icon_h) // 2
+        
+        final_img.paste(icon, (x, y))
+    else:
+        # Fallback if nothing rendered (empty font?)
+        # Try to draw blindly centrally
+        draw_final = ImageDraw.Draw(final_img)
+        draw_final.text((size//4, size//4), emoji, font=font, embedded_color=True)
+
+    return final_img
 
 
 def generate_qr_code(data: str, theme: str = "general", error_correction=qrcode.constants.ERROR_CORRECT_H) -> Image.Image:

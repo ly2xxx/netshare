@@ -56,7 +56,7 @@ tmp/
 
 # app generated images
 *.png
-!streamlit/*.png
+!streamlit/*/*.png
 !streamlit/packages.txt
 
 # PyPI build automation

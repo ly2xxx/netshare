@@ -6,7 +6,7 @@ A Streamlit app for creating and reading holiday greeting QR codes
 
 import streamlit as st
 import qrcode
-from PIL import Image, ImageDraw, ImageFont
+from PIL import Image, ImageDraw
 import io
 import json
 from datetime import datetime
@@ -75,69 +75,40 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 
-def create_emoji_icon(emoji: str, size: int = 100) -> Image.Image:
+def load_theme_icon(theme: str, size: int = 100) -> Image.Image:
     """
-    Create a PIL Image from an emoji character
+    Load and resize theme icon from file
 
     Args:
-        emoji: Emoji character (e.g., "❄️")
-        size: Icon size in pixels
+        theme: Theme name (e.g., "snowflake", "hearts")
+        size: Desired icon size in pixels
 
     Returns:
-        PIL Image with transparent background
+        PIL Image with transparent background, or None if not found
     """
-    # Create temporary canvas to verify system fonts and get exact bounds
-    # Use a larger size to avoid clipping
-    canvas_size = int(size * 1.5)
-    img = Image.new('RGBA', (canvas_size, canvas_size), (0, 0, 0, 0))
-    draw = ImageDraw.Draw(img)
+    import os
 
-    # Try to use a font that supports emojis
+    # Path to icon file
+    icon_path = os.path.join(os.path.dirname(__file__), "icons", f"{theme}.png")
+
     try:
-        # On Windows, Segoe UI Emoji supports emojis
-        font = ImageFont.truetype("seguiemj.ttf", int(size * 0.8))
-    except:
-        try:
-            # Alternative emoji fonts (Mac)
-            font = ImageFont.truetype("/System/Library/Fonts/Apple Color Emoji.ttc", int(size * 0.8))
-        except:
-            try:
-                # Alternative emoji fonts (Linux)
-                font = ImageFont.truetype("NotoColorEmoji.ttf", int(size * 0.8))
-            except:
-                # Fallback to default font (won't render emojis well)
-                font = ImageFont.load_default()
+        # Load icon
+        icon = Image.open(icon_path)
 
-    # Draw emoji roughly in the middle
-    # We use getbbox() later so exact position doesn't matter as long as it's not clipped
-    try:
-        draw.text((canvas_size//4, canvas_size//4), emoji, font=font, embedded_color=True)
-    except Exception:
-         # Fallback for systems/PIL versions without embedded_color support
-         draw.text((canvas_size//4, canvas_size//4), emoji, font=font, fill="black")
+        # Resize to desired size with high-quality resampling
+        icon = icon.resize((size, size), Image.Resampling.LANCZOS)
 
-    # Get bounding box of the actual rendered pixels
-    bbox = img.getbbox()
+        # Ensure RGBA mode for transparency
+        if icon.mode != 'RGBA':
+            icon = icon.convert('RGBA')
 
-    final_img = Image.new('RGBA', (size, size), (0, 0, 0, 0))
-
-    if bbox:
-        # Crop to the actual emoji
-        icon = img.crop(bbox)
-        
-        # Center in the final image
-        icon_w, icon_h = icon.size
-        x = (size - icon_w) // 2
-        y = (size - icon_h) // 2
-        
-        final_img.paste(icon, (x, y))
-    else:
-        # Fallback if nothing rendered (empty font?)
-        # Try to draw blindly centrally
-        draw_final = ImageDraw.Draw(final_img)
-        draw_final.text((size//4, size//4), emoji, font=font, embedded_color=True)
-
-    return final_img
+        return icon
+    except FileNotFoundError:
+        # Icon file doesn't exist - return None to skip icon
+        return None
+    except Exception as e:
+        print(f"Error loading icon for theme '{theme}': {e}")
+        return None
 
 
 def generate_qr_code(data: str, theme: str = "general", error_correction=qrcode.constants.ERROR_CORRECT_H) -> Image.Image:
@@ -166,15 +137,18 @@ def generate_qr_code(data: str, theme: str = "general", error_correction=qrcode.
 
     # Add theme icon if applicable
     if theme in THEME_ICONS and THEME_ICONS[theme]:
-        emoji = THEME_ICONS[theme]
         qr_width, qr_height = pil_img.size
 
         # Icon should be ~20-25% of QR code size (safe margin under 30%)
         icon_size = int(min(qr_width, qr_height) * 0.22)
 
         try:
-            # Create emoji icon
-            icon = create_emoji_icon(emoji, icon_size)
+            # Load icon from file
+            icon = load_theme_icon(theme, icon_size)
+
+            # If icon not found, skip embedding
+            if icon is None:
+                return pil_img
 
             # Calculate center position
             icon_pos = (

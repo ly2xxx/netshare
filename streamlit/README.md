@@ -1,3 +1,7 @@
+https://qr-greeting.streamlit.app/
+
+![qr](greeting.png)
+
 # Holiday Greeting QR Code Generator
 
 A beautiful Streamlit web application for creating and sharing personalized holiday greetings via QR codes.

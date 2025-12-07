@@ -74,7 +74,9 @@ def generate_qr_code(data: str, error_correction=qrcode.constants.ERROR_CORRECT_
     qr.make(fit=True)
 
     img = qr.make_image(fill_color="black", back_color="white")
-    return img
+    # Convert qrcode.image.pil.PilImage to standard PIL.Image.Image
+    pil_img = img.convert('RGB')
+    return pil_img
 
 
 def create_greeting_tab():
@@ -173,7 +175,7 @@ def create_greeting_tab():
                 qr_img = generate_qr_code(greeting_json)
 
                 # Display QR code
-                st.image(qr_img, caption=f"Greeting QR Code for {to_name}", use_container_width=True)
+                st.image(qr_img, caption=f"Greeting QR Code for {to_name}", width='stretch')
 
                 # Statistics
                 st.markdown('<div class="stats-box">', unsafe_allow_html=True)
@@ -222,7 +224,7 @@ def scan_greeting_tab():
             with col1:
                 st.subheader("Uploaded QR Code")
                 image = Image.open(uploaded_file)
-                st.image(image, caption="Uploaded Image", use_container_width=True)
+                st.image(image, caption="Uploaded Image", width='stretch')
 
             # Decode QR code
             try:
@@ -336,7 +338,7 @@ def examples_tab():
                 )
                 greeting_json = compact_greeting(greeting)
                 qr_img = generate_qr_code(greeting_json)
-                st.image(qr_img, caption="QR Code", width=250)
+                st.image(qr_img, caption="QR Code", width='stretch')
 
 
 def about_tab():

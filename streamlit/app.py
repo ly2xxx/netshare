@@ -10,8 +10,16 @@ from PIL import Image
 import io
 import json
 from datetime import datetime
-import cv2
 import numpy as np
+
+# Import cv2 lazily to avoid startup crashes if system libs missing
+try:
+    import cv2
+    CV2_AVAILABLE = True
+except ImportError as e:
+    CV2_AVAILABLE = False
+    CV2_IMPORT_ERROR = str(e)
+
 from greeting_formats import (
     create_holiday_greeting,
     compact_greeting,
@@ -97,13 +105,15 @@ def create_greeting_tab():
         from_name = st.text_input(
             "From (Your Name)",
             placeholder="Alice",
-            help="Who is sending this greeting?"
+            help="Who is sending this greeting?",
+            key="greeting_from_name"
         )
 
         to_name = st.text_input(
             "To (Recipient Name)",
             placeholder="Bob",
-            help="Who will receive this greeting?"
+            help="Who will receive this greeting?",
+            key="greeting_to_name"
         )
 
         occasion = st.selectbox(
@@ -121,7 +131,7 @@ def create_greeting_tab():
         )
 
         if occasion == "Custom":
-            occasion = st.text_input("Custom Occasion", placeholder="Enter custom occasion")
+            occasion = st.text_input("Custom Occasion", placeholder="Enter custom occasion", key="custom_occasion")
 
         theme = st.selectbox(
             "Theme",
@@ -142,19 +152,23 @@ def create_greeting_tab():
             "Your Message",
             placeholder="Merry Christmas! Wishing you joy and happiness this season...",
             height=150,
-            help="Your personalized greeting message"
+            help="Your personalized greeting message",
+            key="greeting_message"
         )
 
         # Character counter
         if message:
             st.caption(f"Message length: {len(message)} characters")
 
-        generate_btn = st.button("🎁 Generate QR Code", type="primary", use_container_width=True)
+        generate_btn = st.button("🎁 Generate QR Code", type="primary", width='stretch')
 
     with col2:
         st.subheader("QR Code Preview")
 
         if generate_btn:
+            # Debug: Check what values we received
+            st.write(f"Debug - from_name: '{from_name}', to_name: '{to_name}', message: '{message}'")
+
             if not from_name or not to_name or not message:
                 st.error("Please fill in all required fields (From, To, and Message)")
             else:
@@ -232,8 +246,10 @@ def scan_greeting_tab():
                 st.image(image, caption="Uploaded Image", width='stretch')
 
             # Decode QR code
-            # Decode QR code
             try:
+                if not CV2_AVAILABLE:
+                    raise ImportError(f"OpenCV not available: {CV2_IMPORT_ERROR}")
+
                 # Use OpenCV for decoding (No pyzbar dependency)
                 # Convert PIL Image to BGR numpy array
                 image_array = np.array(image.convert('RGB'))
@@ -274,11 +290,25 @@ def scan_greeting_tab():
                 else:
                     st.error("No QR code found in the image. Please upload a valid QR code image.")
 
+            except ImportError as e:
+                st.error(f"QR code scanning requires OpenCV system libraries.")
+                st.info("Please use manual JSON entry below:")
+
+                manual_data = st.text_area("Paste QR Code Data (JSON)")
+                if manual_data:
+                    greeting = parse_greeting(manual_data)
+                    if greeting:
+                        st.markdown('<div class="greeting-box">', unsafe_allow_html=True)
+                        st.write(format_greeting_display(greeting))
+                        st.markdown('</div>', unsafe_allow_html=True)
+                    else:
+                        st.error("Invalid greeting data format")
+
             except Exception as e:
                 st.error(f"Error processing image: {str(e)}")
                 st.info("Alternatively, you can manually paste the QR code data below:")
-                
-                manual_data = st.text_area("Paste QR Code Data (JSON)")
+
+                manual_data = st.text_area("Paste QR Code Data (JSON)", key="manual_data_exception")
                 if manual_data:
                     greeting = parse_greeting(manual_data)
                     if greeting:

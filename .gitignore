@@ -56,3 +56,7 @@ tmp/
 
 # app generated images
 *.png
+
+# PyPI build automation
+pypi-build/.env
+pypi-build/logs/

@@ -10,6 +10,8 @@ from PIL import Image
 import io
 import json
 from datetime import datetime
+import cv2
+import numpy as np
 from greeting_formats import (
     create_holiday_greeting,
     compact_greeting,
@@ -203,6 +205,9 @@ def create_greeting_tab():
                     st.code(json.dumps(greeting, indent=2), language='json')
 
 
+
+
+
 def scan_greeting_tab():
     """Tab for scanning/decoding greeting QR codes"""
     st.markdown('<div class="main-header"><h1>📱 Scan Greeting QR Code</h1></div>',
@@ -227,12 +232,18 @@ def scan_greeting_tab():
                 st.image(image, caption="Uploaded Image", width='stretch')
 
             # Decode QR code
+            # Decode QR code
             try:
-                from pyzbar.pyzbar import decode as pyzbar_decode
-                decoded_objects = pyzbar_decode(image)
+                # Use OpenCV for decoding (No pyzbar dependency)
+                # Convert PIL Image to BGR numpy array
+                image_array = np.array(image.convert('RGB'))
+                image_array = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
 
-                if decoded_objects:
-                    qr_data = decoded_objects[0].data.decode('utf-8')
+                detector = cv2.QRCodeDetector()
+                data, bbox, _ = detector.detectAndDecode(image_array)
+
+                if data:
+                    qr_data = data
 
                     # Parse greeting
                     greeting = parse_greeting(qr_data)
@@ -263,10 +274,10 @@ def scan_greeting_tab():
                 else:
                     st.error("No QR code found in the image. Please upload a valid QR code image.")
 
-            except ImportError:
-                st.error("QR code scanning requires pyzbar. Please install: pip install pyzbar")
+            except Exception as e:
+                st.error(f"Error processing image: {str(e)}")
                 st.info("Alternatively, you can manually paste the QR code data below:")
-
+                
                 manual_data = st.text_area("Paste QR Code Data (JSON)")
                 if manual_data:
                     greeting = parse_greeting(manual_data)

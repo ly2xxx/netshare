@@ -512,6 +512,44 @@ def main():
         🎨 Choose themes that match your occasion
         """)
 
+    # Read query param for tab selection
+    try:
+        query_params = st.query_params
+        tab_param = query_params.get('tab', 'create')
+    except:
+        # Fallback for older Streamlit versions
+        query_params = st.experimental_get_query_params()
+        tab_param = query_params.get('tab', ['create'])[0]
+
+    # Map tab names to indices
+    tab_map = {"create": 0, "scan": 1, "examples": 2, "about": 3}
+    tab_index = tab_map.get(tab_param, 0)
+
+    # Inject JavaScript to click the correct tab (only if not the first tab)
+    if tab_index > 0:
+        st.components.v1.html(f"""
+            <script>
+            (function() {{
+                let attempts = 0;
+                const maxAttempts = 10;
+
+                function clickTab() {{
+                    const tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
+
+                    if (tabs && tabs.length > {tab_index}) {{
+                        tabs[{tab_index}].click();
+                        return true;
+                    }} else if (attempts < maxAttempts) {{
+                        attempts++;
+                        setTimeout(clickTab, 100);
+                    }}
+                }}
+
+                clickTab();
+            }})();
+            </script>
+        """, height=0)
+
     # Main tabs
     tab1, tab2, tab3, tab4 = st.tabs(["Create Greeting", "Scan QR Code", "Examples", "About"])
 

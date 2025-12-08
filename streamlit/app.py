@@ -12,7 +12,10 @@ import json
 from datetime import datetime
 import numpy as np
 import csv
+import csv
 from pathlib import Path
+import base64
+import os
 
 # Import cv2 lazily to avoid startup crashes if system libs missing
 try:
@@ -149,8 +152,87 @@ st.markdown("""
         border-radius: 8px;
         margin: 0.5rem 0;
     }
+    .letter-container {
+        background-color: #fdfbf7;
+        padding: 40px;
+        border-radius: 5px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        border: 1px solid #e0e0e0;
+        min-height: 400px;
+        position: relative;
+        font-family: 'Georgia', serif;
+        color: #333;
+        margin-top: 20px;
+    }
+    .letter-header {
+        margin-bottom: 30px;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 10px;
+    }
+    .letter-from, .letter-to {
+        font-size: 1.1em;
+        margin: 5px 0;
+    }
+    .letter-body {
+        font-size: 1.25em;
+        line-height: 1.6;
+        white-space: pre-wrap;
+        margin-bottom: 60px;
+    }
+    .letter-watermark {
+        position: absolute;
+        bottom: 20px;
+        right: 20px;
+        opacity: 0.8;
+        width: 100px;
+        height: 100px;
+    }
+    .letter-footer {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        font-size: 0.8em;
+        color: #888;
+    }
 </style>
 """, unsafe_allow_html=True)
+
+
+
+def get_img_as_base64(file_path):
+    """Read image file and return base64 string"""
+    with open(file_path, "rb") as f:
+        data = f.read()
+    return base64.b64encode(data).decode()
+
+
+def display_greeting_letter(greeting):
+    """Display greeting in a letter format"""
+    # Prepare icon for HTML
+    theme_name = greeting.get('theme', 'general')
+    icon_html = ""
+    if theme_name in THEME_ICONS and theme_name != 'general':
+        icon_path = os.path.join(os.path.dirname(__file__), "icons", f"{theme_name}.png")
+        if os.path.exists(icon_path):
+            b64_icon = get_img_as_base64(icon_path)
+            icon_html = f'<img src="data:image/png;base64,{b64_icon}" class="letter-watermark">'
+
+    # Render HTML Letter
+    st.markdown(f"""
+    <div class="letter-container">
+        <div class="letter-header">
+            <div class="letter-to"><strong>To:</strong> {greeting.get('to', 'Friend')}</div>
+            <div class="letter-from"><strong>From:</strong> {greeting.get('from', 'Me')}</div>
+        </div>
+        <div class="letter-body">
+{greeting.get('message', '')}
+        </div>
+        {icon_html}
+        <div class="letter-footer">
+            Created: {greeting.get('created', '').split('T')[0]}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 
 def load_theme_icon(theme: str, size: int = 100) -> Image.Image:
@@ -425,21 +507,8 @@ def scan_greeting_tab():
 
                         if greeting:
                             # Display formatted greeting
-                            st.markdown('<div class="greeting-box">', unsafe_allow_html=True)
-                            if greeting['from']: st.write(f"**From:** {greeting['from']}")
-                            if greeting['to']: st.write(f"**To:** {greeting['to']}")
-                            # st.markdown("---") 
-                            st.write(greeting['message'])
-                            # st.markdown("---")
-                            # st.caption(f"Theme: {greeting.get('theme', 'general')}")
-                            # st.caption(f"Created: {greeting.get('created', 'Unknown')}")
-                            st.markdown('</div>', unsafe_allow_html=True)
-                            st.markdown('</div>', unsafe_allow_html=True)
-
-                            # Show raw data
-                            # Show raw data (Removed)
-                            # with st.expander("View Raw Data"):
-                            #    st.text(qr_data)
+                            # Display formatted greeting
+                            display_greeting_letter(greeting)
                         else:
                             st.warning("This QR code doesn't contain a valid greeting format.")
                             st.write("**Decoded data:**")
@@ -542,20 +611,6 @@ def about_tab():
     st.write("""
     ## Holiday Greeting QR Code Generator
 
-    This application allows you to create personalized holiday greetings encoded in QR codes.
-    Share your messages in a unique and modern way!
-
-    ### Features
-    - 🎁 Create custom greeting QR codes
-    - 📱 Scan and read greeting QR codes
-    - 🎨 Multiple theme options
-    - 📥 Download QR codes as images
-    - 💾 Compact JSON format for efficient encoding
-
-    ### How It Works
-    1. Enter your greeting details (from, to, message, occasion)
-    2. Choose a theme
-    3. Generate the QR code
     4. Download and share!
 
     Recipients can scan the QR code with their phone camera or upload it to this app to view your message.

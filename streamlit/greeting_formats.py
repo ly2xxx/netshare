@@ -56,7 +56,24 @@ def parse_greeting(qr_data: str) -> Optional[Dict]:
     if not qr_data:
         return None
         
-    # Return structure compliant with expected app format, but with defaults
+    # Try to parse as JSON first
+    try:
+        data = json.loads(qr_data)
+        if isinstance(data, dict):
+            # Ensure it has basic fields
+            return {
+                "v": data.get("v", "1.0"),
+                "type": data.get("type", "greeting"),
+                "from": data.get("from", ""),
+                "to": data.get("to", ""),
+                "message": data.get("message", ""),
+                "theme": data.get("theme", "general"),
+                "created": data.get("created", datetime.utcnow().isoformat())
+            }
+    except json.JSONDecodeError:
+        pass
+
+    # Fallback to plain text
     return {
         "v": "1.0",
         "type": "greeting",

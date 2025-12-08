@@ -43,6 +43,7 @@ Thumbs.db
 # NetShare specific
 netshare_qr.png
 *.log
+streamlit/track.csv
 
 # Testing
 .pytest_cache/

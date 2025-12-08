@@ -11,6 +11,8 @@ import io
 import json
 from datetime import datetime
 import numpy as np
+import csv
+from pathlib import Path
 
 # Import cv2 lazily to avoid startup crashes if system libs missing
 try:
@@ -27,6 +29,82 @@ from greeting_formats import (
     format_greeting_display,
     get_greeting_stats
 )
+
+# ============================================================================
+# Download Tracking Functions
+# ============================================================================
+
+def log_download(filename: str) -> None:
+    """
+    Log a QR code download event to track.csv
+
+    Args:
+        filename: Name of the downloaded file
+
+    Thread-safe implementation using file locking
+    """
+    # CSV file path (same directory as app.py)
+    csv_path = Path(__file__).parent / "track.csv"
+    timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    try:
+        # Create file with headers if it doesn't exist
+        if not csv_path.exists():
+            with open(csv_path, 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(['filename', 'timestamp'])
+
+        # Append with exclusive lock (prevents concurrent write corruption)
+        with open(csv_path, 'a', newline='') as f:
+            # Acquire exclusive lock (blocks other processes)
+            try:
+                import fcntl
+                fcntl.flock(f.fileno(), fcntl.LOCK_EX)
+            except (ImportError, AttributeError):
+                # fcntl not available on Windows, skip locking
+                pass
+
+            try:
+                writer = csv.writer(f)
+                writer.writerow([filename, timestamp])
+            finally:
+                # Release lock if fcntl is available
+                try:
+                    import fcntl
+                    fcntl.flock(f.fileno(), fcntl.LOCK_UN)
+                except (ImportError, AttributeError):
+                    pass
+    except Exception as e:
+        # Silent failure - don't interrupt user experience
+        import sys
+        print(f"Warning: Failed to log download: {e}", file=sys.stderr)
+
+
+def get_download_count() -> int:
+    """
+    Read and count total downloads from track.csv
+
+    Returns:
+        Number of downloads, or 0 if file doesn't exist or error occurs
+    """
+    csv_path = Path(__file__).parent / "track.csv"
+
+    try:
+        if not csv_path.exists():
+            return 0
+
+        with open(csv_path, 'r', newline='') as f:
+            reader = csv.reader(f)
+            # Skip header row
+            next(reader, None)
+            # Count remaining rows
+            count = sum(1 for _ in reader)
+            return count
+    except Exception as e:
+        # Return 0 on error (graceful degradation)
+        import sys
+        print(f"Warning: Failed to read download count: {e}", file=sys.stderr)
+        return 0
 
 # Theme to emoji mapping
 THEME_ICONS = {
@@ -278,12 +356,18 @@ def create_greeting_tab():
                 qr_img.save(buf, format='PNG')
                 byte_im = buf.getvalue()
 
+                # Generate filename first for consistency
+                filename = f"greeting_{to_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+
+                # Download button with tracking callback
                 st.download_button(
                     label="📥 Download QR Code",
                     data=byte_im,
-                    file_name=f"greeting_{to_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png",
+                    file_name=filename,
                     mime="image/png",
-                    use_container_width=True
+                    use_container_width=True,
+                    on_click=log_download,
+                    args=(filename,)
                 )
 
                 # Show JSON data
@@ -489,6 +573,10 @@ def about_tab():
     - **qrcode** - QR code generation
     - **Pillow** - Image processing
     """)
+
+    # Display download count (just the number)
+    count = get_download_count()
+    st.write(count)
 
 
 def main():

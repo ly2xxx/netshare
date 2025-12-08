@@ -268,50 +268,49 @@ def create_greeting_tab():
     with col1:
         st.subheader("Greeting Details")
 
-        from_name = st.text_input(
-            "From (Your Name)",
-            placeholder="Alice",
-            help="Who is sending this greeting?",
-            key="greeting_from_name"
-        )
+        with st.form("greeting_form"):
+            from_name = st.text_input(
+                "From (Your Name)",
+                placeholder="Alice",
+                help="Who is sending this greeting?",
+                key="greeting_from_name"
+            )
 
-        to_name = st.text_input(
-            "To (Recipient Name)",
-            placeholder="Bob",
-            help="Who will receive this greeting?",
-            key="greeting_to_name"
-        )
+            to_name = st.text_input(
+                "To (Recipient Name)",
+                placeholder="Bob",
+                help="Who will receive this greeting?",
+                key="greeting_to_name"
+            )
 
+            theme = st.selectbox(
+                "Theme",
+                [
+                    "snowflake",
+                    "fireworks",
+                    "lights",
+                    "stars",
+                    "confetti",
+                    "champagne",
+                    "hearts",
+                    "general"
+                ],
+                help="Visual theme for the greeting"
+            )
 
+            message = st.text_area(
+                "Your Message",
+                placeholder="Merry Christmas! Wishing you joy and happiness this season...",
+                height=150,
+                help="Your personalized greeting message",
+                key="greeting_message"
+            )
 
-        theme = st.selectbox(
-            "Theme",
-            [
-                "snowflake",
-                "fireworks",
-                "lights",
-                "stars",
-                "confetti",
-                "champagne",
-                "hearts",
-                "general"
-            ],
-            help="Visual theme for the greeting"
-        )
+            # Character counter
+            if message:
+                st.caption(f"Message length: {len(message)} characters")
 
-        message = st.text_area(
-            "Your Message",
-            placeholder="Merry Christmas! Wishing you joy and happiness this season...",
-            height=150,
-            help="Your personalized greeting message",
-            key="greeting_message"
-        )
-
-        # Character counter
-        if message:
-            st.caption(f"Message length: {len(message)} characters")
-
-        generate_btn = st.button("🎁 Generate QR Code", type="primary", width='stretch')
+            generate_btn = st.form_submit_button("🎁 Generate QR Code", type="primary", use_container_width=True)
 
     with col2:
         st.subheader("QR Code Preview")

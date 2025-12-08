@@ -46,7 +46,7 @@ def compact_greeting(payload: Dict) -> str:
     Returns:
         Compact JSON string
     """
-    return json.dumps(payload, separators=(',', ':'))
+    return json.dumps(payload, separators=(',', ':'), ensure_ascii=False)
 
 
 def parse_greeting(qr_data: str) -> Optional[Dict]:

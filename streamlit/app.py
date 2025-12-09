@@ -339,7 +339,7 @@ def render_theme_selector() -> str:
                     st.image(icon_img, width=60)
                 else:
                     # QR code emoji for general theme
-                    st.markdown('<div style="text-align: center; font-size: 48px;">📱</div>',
+                    st.markdown('<div style="text-align: center; font-size: 48px;">⊞</div>',
                               unsafe_allow_html=True)
 
                 # Clickable button below icon

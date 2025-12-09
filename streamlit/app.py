@@ -271,6 +271,92 @@ def load_theme_icon(theme: str, size: int = 100) -> Image.Image:
         return None
 
 
+def get_theme_display_icon(theme: str, size: int = 60) -> Image.Image:
+    """
+    Load theme icon for display in UI preview
+
+    Args:
+        theme: Theme name (e.g., "snowflake", "hearts")
+        size: Preview size in pixels (default 60px for grid display)
+
+    Returns:
+        PIL Image or None if theme is "general" or icon not found
+    """
+    if theme == "general":
+        return None
+
+    icon_path = os.path.join(os.path.dirname(__file__), "icons", f"{theme}.png")
+
+    if not os.path.exists(icon_path):
+        return None
+
+    try:
+        icon = Image.open(icon_path)
+        icon = icon.resize((size, size), Image.Resampling.LANCZOS)
+        return icon
+    except Exception:
+        return None
+
+
+def render_theme_selector() -> str:
+    """
+    Render theme selector as a 4x2 grid with clickable icon buttons
+
+    Returns:
+        Selected theme name
+    """
+    st.markdown("**Theme**")
+    st.caption("Click an icon to select a theme")
+
+    themes = [
+        ("snowflake", "Snowflake"),
+        ("fireworks", "Fireworks"),
+        ("lights", "Lights"),
+        ("stars", "Stars"),
+        ("confetti", "Confetti"),
+        ("champagne", "Champagne"),
+        ("hearts", "Hearts"),
+        ("general", "General")
+    ]
+
+    # Initialize session state for theme selection
+    if 'selected_theme' not in st.session_state:
+        st.session_state.selected_theme = "snowflake"
+
+    # Create 4 columns for grid layout (4 themes per row)
+    num_cols = 4
+    rows = [themes[i:i + num_cols] for i in range(0, len(themes), num_cols)]
+
+    for row in rows:
+        cols = st.columns(num_cols)
+
+        for col_idx, (theme_key, theme_label) in enumerate(row):
+            with cols[col_idx]:
+                # Load and display icon
+                icon_img = get_theme_display_icon(theme_key, size=60)
+
+                if icon_img:
+                    st.image(icon_img, width=60)
+                else:
+                    # QR code emoji for general theme
+                    st.markdown('<div style="text-align: center; font-size: 48px;">📱</div>',
+                              unsafe_allow_html=True)
+
+                # Clickable button below icon
+                is_selected = st.session_state.selected_theme == theme_key
+
+                if st.button(
+                    theme_label,
+                    key=f"theme_btn_{theme_key}",
+                    type="primary" if is_selected else "secondary",
+                    use_container_width=True
+                ):
+                    st.session_state.selected_theme = theme_key
+                    st.rerun()
+
+    return st.session_state.selected_theme
+
+
 def generate_qr_code(data: str, theme: str = "general", error_correction=qrcode.constants.ERROR_CORRECT_H) -> Image.Image:
     """
     Generate QR code from data string
@@ -350,6 +436,11 @@ def create_greeting_tab():
     with col1:
         st.subheader("Greeting Details")
 
+        # Theme selector outside form to allow interactive button clicks
+        theme = render_theme_selector()
+
+        st.markdown("---")
+
         with st.form("greeting_form"):
             from_name = st.text_input(
                 "From (Your Name)",
@@ -365,21 +456,6 @@ def create_greeting_tab():
                 key="greeting_to_name"
             )
 
-            theme = st.selectbox(
-                "Theme",
-                [
-                    "snowflake",
-                    "fireworks",
-                    "lights",
-                    "stars",
-                    "confetti",
-                    "champagne",
-                    "hearts",
-                    "general"
-                ],
-                help="Visual theme for the greeting"
-            )
-
             message = st.text_area(
                 "Your Message",
                 placeholder="Merry Christmas! Wishing you joy and happiness this season...",
@@ -392,7 +468,7 @@ def create_greeting_tab():
             if message:
                 st.caption(f"Message length: {len(message)} characters")
 
-            generate_btn = st.form_submit_button("🎁 Generate QR Code", type="primary", use_container_width=True)
+            generate_btn = st.form_submit_button("Generate QR Code", icon=":material/qr_code_2:", type="primary", use_container_width=True)
 
     with col2:
         st.subheader("QR Code Preview")
@@ -611,6 +687,20 @@ def about_tab():
     st.write("""
     ## Holiday Greeting QR Code Generator
 
+    This application allows you to create personalized holiday greetings encoded in QR codes.
+    Share your messages in a unique and modern way!
+
+    ### Features
+    - ✨ Create custom greeting QR codes
+    - 📱 Scan and read greeting QR codes
+    - 🎨 Multiple theme options
+    - 📥 Download QR codes as images
+    - 💾 Compact JSON format for efficient encoding
+
+    ### How It Works
+    1. Enter your greeting details (from, to, message)
+    2. Choose a theme
+    3. Generate the QR code
     4. Download and share!
 
     Recipients can scan the QR code with their phone camera or upload it to this app to view your message.

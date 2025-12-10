@@ -300,61 +300,61 @@ def get_theme_display_icon(theme: str, size: int = 60) -> Image.Image:
 
 def render_theme_selector() -> str:
     """
-    Render theme selector as a 4x2 grid with clickable icon buttons
+    Render theme selector as a dropdown with icon preview (mobile-friendly)
 
     Returns:
         Selected theme name
     """
-    st.markdown("**Theme**")
-    st.caption("Click an icon to select a theme")
-
+    # Theme options with emoji indicators for the dropdown
     themes = [
-        ("snowflake", "Snowflake"),
-        ("fireworks", "Fireworks"),
-        ("lights", "Lights"),
-        ("stars", "Stars"),
-        ("confetti", "Confetti"),
-        ("champagne", "Champagne"),
-        ("hearts", "Hearts"),
-        ("general", "General")
+        ("snowflake", "❄️ Snowflake"),
+        ("fireworks", "🎆 Fireworks"),
+        ("lights", "✨ Lights"),
+        ("stars", "⭐ Stars"),
+        ("confetti", "🎉 Confetti"),
+        ("champagne", "🥂 Champagne"),
+        ("hearts", "❤️ Hearts"),
+        ("general", "⊞ General (No Icon)")
     ]
+
+    # Create lookup dictionaries
+    theme_keys = [t[0] for t in themes]
+    theme_labels = [t[1] for t in themes]
+    key_to_label = {t[0]: t[1] for t in themes}
+    label_to_key = {t[1]: t[0] for t in themes}
 
     # Initialize session state for theme selection
     if 'selected_theme' not in st.session_state:
         st.session_state.selected_theme = "snowflake"
 
-    # Create 4 columns for grid layout (4 themes per row)
-    num_cols = 4
-    rows = [themes[i:i + num_cols] for i in range(0, len(themes), num_cols)]
+    # Get current selection's label for the selectbox default
+    current_label = key_to_label.get(st.session_state.selected_theme, theme_labels[0])
+    current_index = theme_labels.index(current_label) if current_label in theme_labels else 0
 
-    for row in rows:
-        cols = st.columns(num_cols)
+    # Dropdown selector
+    selected_label = st.selectbox(
+        "Theme",
+        options=theme_labels,
+        index=current_index,
+        help="Choose a theme icon to embed in your QR code",
+        key="theme_dropdown"
+    )
 
-        for col_idx, (theme_key, theme_label) in enumerate(row):
-            with cols[col_idx]:
-                # Load and display icon
-                icon_img = get_theme_display_icon(theme_key, size=60)
+    # Update session state based on selection
+    selected_theme = label_to_key.get(selected_label, "snowflake")
+    st.session_state.selected_theme = selected_theme
 
-                if icon_img:
-                    st.image(icon_img, width=60)
-                else:
-                    # QR code emoji for general theme
-                    st.markdown('<div style="text-align: center; font-size: 48px;">⊞</div>',
-                              unsafe_allow_html=True)
+    # Show preview of selected icon
+    if selected_theme != "general":
+        icon_preview = get_theme_display_icon(selected_theme, size=80)
+        if icon_preview:
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                st.image(icon_preview, caption="Selected Icon Preview", use_container_width=False)
+    else:
+        st.caption("ℹ️ General theme: QR code will have no embedded icon")
 
-                # Clickable button below icon
-                is_selected = st.session_state.selected_theme == theme_key
-
-                if st.button(
-                    theme_label,
-                    key=f"theme_btn_{theme_key}",
-                    type="primary" if is_selected else "secondary",
-                    use_container_width=True
-                ):
-                    st.session_state.selected_theme = theme_key
-                    st.rerun()
-
-    return st.session_state.selected_theme
+    return selected_theme
 
 
 def generate_qr_code(data: str, theme: str = "general", error_correction=qrcode.constants.ERROR_CORRECT_H) -> Image.Image:

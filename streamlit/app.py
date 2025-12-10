@@ -775,10 +775,11 @@ def main():
 
     # Sidebar
     with st.sidebar:
-        st.image("https://raw.githubusercontent.com/anthropics/anthropic-quickstarts/main/computer-use-demo/image.png",
-                 width=100)
+        # st.image("https://raw.githubusercontent.com/anthropics/anthropic-quickstarts/main/computer-use-demo/image.png",
+        #          width=100)
         st.title("Holiday Greeting QR")
         st.write("Create and share personalized holiday greetings via QR codes!")
+        st.markdown("*A greener, smarter way to say happy holidays.*")
 
         st.markdown("---")
 

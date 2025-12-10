@@ -428,6 +428,7 @@ def create_greeting_tab():
     st.markdown('<div class="main-header"><h1>🎄 Create Holiday Greeting QR Code</h1></div>',
                 unsafe_allow_html=True)
 
+    st.markdown("### *A greener, smarter way to say happy holidays.*")
     st.write("Create a personalized holiday greeting that can be shared via QR code!")
 
     # Two column layout

@@ -689,11 +689,57 @@ def about_tab():
 
     This application allows you to create personalized holiday greetings encoded in QR codes.
     Share your messages in a unique and modern way!
+    """)
 
+    # Core positioning messages
+    st.markdown("---")
+    st.subheader("Why Choose QR Greetings?")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.markdown("""
+        ### 🌱 Environment Friendly
+
+        **Zero paper. Zero postage. Instant delivery.**
+
+        Traditional paper cards consume materials, printing resources, and shipping energy.
+        QR greetings are 100% digital — no trees harmed, no carbon footprint from delivery trucks.
+
+        Send your love without leaving a trace on the planet.
+        """)
+
+    with col2:
+        st.markdown("""
+        ### 🔐 Secret in Transit
+
+        **Your message stays private until revealed.**
+
+        Unlike public social media posts, your greeting is encoded within the QR pattern itself.
+        Only the recipient who scans it can see your heartfelt message.
+
+        It's like a digital sealed envelope — personal, intimate, and special.
+        """)
+
+    with col3:
+        st.markdown("""
+        ### 📱 Device Friendly
+
+        **Works on any phone. No app required.**
+
+        Recipients simply point their camera at the QR code — that's it!
+        Works seamlessly on both iOS and Android, opening directly in the browser.
+
+        No downloads, no sign-ups, no friction. Just scan and smile.
+        """)
+
+    st.markdown("---")
+
+    st.write("""
     ### Features
     - ✨ Create custom greeting QR codes
     - 📱 Scan and read greeting QR codes
-    - 🎨 Multiple theme options
+    - 🎨 Multiple theme options with embedded icons
     - 📥 Download QR codes as images
     - 💾 Compact JSON format for efficient encoding
 

@@ -611,6 +611,45 @@ def scan_greeting_tab():
     st.markdown('<div class="main-header"><h1>📱 Scan Greeting QR Code</h1></div>',
                 unsafe_allow_html=True)
 
+    # Check if greeting data is passed via URL parameters (from QR code scan)
+    try:
+        query_params = st.query_params
+    except:
+        query_params = st.experimental_get_query_params()
+    
+    # Check if we have greeting data in URL (m or mc parameter indicates a message)
+    has_url_greeting = query_params.get('m') or query_params.get('mc')
+    
+    if has_url_greeting:
+        # Decode greeting from URL parameters and display it
+        greeting = decode_greeting_from_url(dict(query_params))
+        
+        if greeting:
+            st.success("🎉 Greeting received!")
+            
+            # Display the full letter format
+            display_greeting_letter(greeting)
+            
+            st.markdown("---")
+            
+            # Option to create their own or scan another
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("📝 Create Your Own Greeting", width='stretch'):
+                    st.query_params.clear()
+                    st.rerun()
+            with col2:
+                if st.button("📤 Scan Another QR Code", width='stretch'):
+                    # Clear only the greeting params, keep tab=scan
+                    st.query_params.clear()
+                    st.query_params["tab"] = "scan"
+                    st.rerun()
+            
+            return  # Don't show the upload interface
+        else:
+            st.warning("Could not decode greeting from URL. Try uploading the QR code image instead.")
+
+    # Normal upload interface
     st.write("Upload a greeting QR code image to view the message!")
 
     uploaded_file = st.file_uploader(
@@ -645,14 +684,13 @@ def scan_greeting_tab():
                 if data:
                     qr_data = data
 
-                    # Parse greeting
+                    # Parse greeting (handles both URL and JSON formats)
                     greeting = parse_greeting(qr_data)
 
                     with col2:
                         st.subheader("Greeting Message")
 
                         if greeting:
-                            # Display formatted greeting
                             # Display formatted greeting
                             display_greeting_letter(greeting)
                         else:

@@ -5,8 +5,112 @@ Handles creation and parsing of holiday greeting data in compact JSON format
 """
 
 import json
+import base64
+import zlib
 from datetime import datetime
 from typing import Dict, Optional
+from urllib.parse import urlencode, parse_qs, quote, unquote
+
+
+# Base URL for the greeting app
+GREETING_APP_URL = "https://qr-greeting.streamlit.app/"
+
+
+def encode_greeting_to_url(greeting: Dict, base_url: str = GREETING_APP_URL) -> str:
+    """
+    Encode greeting data into a URL with compressed query parameters
+    
+    Args:
+        greeting: Greeting dictionary with from, to, message, theme
+        base_url: Base URL for the greeting app
+        
+    Returns:
+        Full URL with encoded greeting data
+    """
+    # Compress the message to save space (important for QR code size)
+    message = greeting.get("message", "")
+    from_name = greeting.get("from", "")
+    to_name = greeting.get("to", "")
+    theme = greeting.get("theme", "general")
+    
+    # Use base64 + zlib compression for the message if it's long
+    if len(message) > 50:
+        # Compress and encode
+        compressed = zlib.compress(message.encode('utf-8'), level=9)
+        encoded_msg = base64.urlsafe_b64encode(compressed).decode('ascii')
+        msg_param = f"mc={encoded_msg}"  # mc = message compressed
+    else:
+        # Short messages: just URL encode
+        msg_param = f"m={quote(message, safe='')}"
+    
+    # Build query string with short parameter names
+    params = {
+        "tab": "scan",
+        "f": from_name,
+        "t": to_name,
+        "th": theme
+    }
+    
+    query = urlencode(params, safe='')
+    
+    # Add message parameter (already formatted)
+    full_url = f"{base_url}?{query}&{msg_param}"
+    
+    return full_url
+
+
+def decode_greeting_from_url(query_params: Dict) -> Optional[Dict]:
+    """
+    Decode greeting data from URL query parameters
+    
+    Args:
+        query_params: Dictionary of query parameters (values may be lists)
+        
+    Returns:
+        Greeting dictionary or None if invalid
+    """
+    try:
+        # Handle both list and single value formats
+        def get_param(key, default=""):
+            val = query_params.get(key, default)
+            if isinstance(val, list):
+                return val[0] if val else default
+            return val or default
+        
+        from_name = get_param("f")
+        to_name = get_param("t")
+        theme = get_param("th", "general")
+        
+        # Check for compressed message first
+        compressed_msg = get_param("mc")
+        plain_msg = get_param("m")
+        
+        if compressed_msg:
+            # Decompress message
+            try:
+                compressed_bytes = base64.urlsafe_b64decode(compressed_msg)
+                message = zlib.decompress(compressed_bytes).decode('utf-8')
+            except Exception:
+                message = ""
+        elif plain_msg:
+            message = unquote(plain_msg)
+        else:
+            message = ""
+        
+        if not message:
+            return None
+            
+        return {
+            "v": "1.0",
+            "type": "greeting",
+            "from": from_name,
+            "to": to_name,
+            "message": message,
+            "theme": theme,
+            "created": datetime.utcnow().isoformat()
+        }
+    except Exception:
+        return None
 
 
 def create_holiday_greeting(
@@ -51,12 +155,27 @@ def compact_greeting(payload: Dict) -> str:
 
 def parse_greeting(qr_data: str) -> Optional[Dict]:
     """
-    Parse raw text QR code into a greeting structure
+    Parse raw text QR code into a greeting structure.
+    Supports both JSON format and URL format (new).
     """
     if not qr_data:
         return None
+    
+    # Check if it's a URL (new format)
+    if qr_data.startswith("http://") or qr_data.startswith("https://"):
+        try:
+            from urllib.parse import urlparse, parse_qs
+            parsed_url = urlparse(qr_data)
+            query_params = parse_qs(parsed_url.query)
+            
+            # Convert query params to format expected by decode_greeting_from_url
+            greeting = decode_greeting_from_url(query_params)
+            if greeting:
+                return greeting
+        except Exception:
+            pass
         
-    # Try to parse as JSON first
+    # Try to parse as JSON (legacy format)
     try:
         data = json.loads(qr_data)
         if isinstance(data, dict):
@@ -77,12 +196,13 @@ def parse_greeting(qr_data: str) -> Optional[Dict]:
     return {
         "v": "1.0",
         "type": "greeting",
-        "from": "", # Not stored in QR
-        "to": "",   # Not stored in QR
+        "from": "",  # Not stored in QR
+        "to": "",    # Not stored in QR
         "message": qr_data,
         "theme": "general",
         "created": datetime.utcnow().isoformat()
     }
+
 
 
 def format_greeting_display(greeting: Dict) -> str:

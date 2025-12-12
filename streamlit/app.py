@@ -236,8 +236,21 @@ def display_qr_with_protection(qr_img: Image.Image, caption: str = "", width: in
     img_base64 = base64.b64encode(buf.read()).decode()
     img_data_uri = f"data:image/png;base64,{img_base64}"
 
+    # Get actual QR image dimensions
+    img_width, img_height = qr_img.size
+
+    # Use constrained width for consistent display
+    # Max 500px width works well across devices (desktop and mobile)
+    max_display_width = 500
+    actual_display_width = min(img_width, max_display_width)
+
+    # QR codes are square, so height = width
+    # Add extra space for caption and margins
+    caption_space = 80 if caption else 40
+    iframe_height = actual_display_width + caption_space
+
     # Build protected HTML with inline styles and JavaScript
-    width_style = f"width: {width}px;" if width else "width: 100%;"
+    width_style = f"max-width: {max_display_width}px; width: 100%;"
 
     # Use id(qr_img) for unique element ID
     unique_id = f"qr-preview-{id(qr_img)}"
@@ -269,9 +282,7 @@ def display_qr_with_protection(qr_img: Image.Image, caption: str = "", width: in
     </script>
     """
 
-    # Calculate height - use width if provided, otherwise use a reasonable default
-    height = width if width else 400
-    components.html(html_code, height=height, scrolling=False)
+    components.html(html_code, height=iframe_height, scrolling=False)
 
 
 def display_greeting_letter(greeting):

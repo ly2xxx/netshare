@@ -350,7 +350,7 @@ def render_theme_selector() -> str:
         if icon_preview:
             col1, col2, col3 = st.columns([1, 2, 1])
             with col2:
-                st.image(icon_preview, caption="Selected Icon Preview", use_container_width=False)
+                st.image(icon_preview, caption="Selected Icon Preview", width='content')
     else:
         st.caption("ℹ️ General theme: QR code will have no embedded icon")
 
@@ -469,7 +469,7 @@ def create_greeting_tab():
             if message:
                 st.caption(f"Message length: {len(message)} characters")
 
-            generate_btn = st.form_submit_button("Generate QR Code", icon=":material/qr_code_2:", type="primary", use_container_width=True)
+            generate_btn = st.form_submit_button("Generate QR Code", icon=":material/qr_code_2:", type="primary", width='stretch')
 
     with col2:
         st.subheader("QR Code Preview")
@@ -523,7 +523,7 @@ def create_greeting_tab():
                     data=byte_im,
                     file_name=filename,
                     mime="image/png",
-                    use_container_width=True,
+                    width='stretch',
                     on_click=log_download,
                     args=(filename,)
                 )

@@ -16,6 +16,7 @@ import csv
 from pathlib import Path
 import base64
 import os
+import streamlit.components.v1 as components
 
 # Import cv2 lazily to avoid startup crashes if system libs missing
 try:
@@ -194,6 +195,13 @@ st.markdown("""
         font-size: 0.8em;
         color: #888;
     }
+    /* QR Code Protection - Global fallback */
+    .qr-code-protected {
+        -webkit-touch-callout: none;
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-user-drag: none;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -204,6 +212,63 @@ def get_img_as_base64(file_path):
     with open(file_path, "rb") as f:
         data = f.read()
     return base64.b64encode(data).decode()
+
+
+def display_qr_with_protection(qr_img: Image.Image, caption: str = "", width: int = None) -> None:
+    """
+    Display QR code image with right-click protection
+
+    Args:
+        qr_img: PIL Image object of QR code
+        caption: Caption text to display below image
+        width: Width in pixels (None for auto-width, matching Streamlit's 'stretch')
+
+    Returns:
+        None (renders HTML component directly)
+    """
+    # Convert PIL Image to base64 data URI
+    buf = io.BytesIO()
+    qr_img.save(buf, format='PNG')
+    buf.seek(0)
+    img_base64 = base64.b64encode(buf.read()).decode()
+    img_data_uri = f"data:image/png;base64,{img_base64}"
+
+    # Build protected HTML with inline styles and JavaScript
+    width_style = f"width: {width}px;" if width else "width: 100%;"
+
+    # Use id(qr_img) for unique element ID
+    unique_id = f"qr-preview-{id(qr_img)}"
+
+    html_code = f"""
+    <div style="text-align: center; margin: 1rem 0;">
+        <img
+            id="{unique_id}"
+            src="{img_data_uri}"
+            alt="QR Code Preview"
+            style="{width_style} height: auto; display: block; margin: 0 auto;
+                   -webkit-touch-callout: none; -webkit-user-select: none;
+                   -moz-user-select: none; -ms-user-select: none; user-select: none;
+                   -webkit-user-drag: none; user-drag: none;"
+            oncontextmenu="return false;"
+            ondragstart="return false;"
+        >
+        {f'<p style="text-align: center; color: #666; font-size: 0.9em; margin-top: 0.5rem;">{caption}</p>' if caption else ''}
+    </div>
+    <script>
+    (function() {{
+        const img = document.getElementById('{unique_id}');
+        if (img) {{
+            img.addEventListener('contextmenu', e => {{ e.preventDefault(); return false; }});
+            img.addEventListener('dragstart', e => {{ e.preventDefault(); return false; }});
+            img.addEventListener('copy', e => {{ e.preventDefault(); return false; }});
+        }}
+    }})();
+    </script>
+    """
+
+    # Calculate height - use width if provided, otherwise use a reasonable default
+    height = width if width else 400
+    components.html(html_code, height=height, scrolling=False)
 
 
 def display_greeting_letter(greeting):
@@ -499,7 +564,7 @@ def create_greeting_tab():
                 qr_img = generate_qr_code(greeting_json, theme=theme)
 
                 # Display QR code
-                st.image(qr_img, caption=f"Greeting QR Code for {to_name}", width='stretch')
+                display_qr_with_protection(qr_img, caption=f"Greeting QR Code for {to_name}", width=None)
 
                 # Statistics
                 st.markdown('<div class="stats-box">', unsafe_allow_html=True)
@@ -677,7 +742,7 @@ def examples_tab():
                 )
                 greeting_json = compact_greeting(greeting)
                 qr_img = generate_qr_code(greeting_json, theme=example['theme'])
-                st.image(qr_img, caption="QR Code", width='stretch')
+                display_qr_with_protection(qr_img, caption="QR Code", width=None)
 
 
 def about_tab():

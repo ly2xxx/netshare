@@ -819,6 +819,31 @@ def about_tab():
     Share your messages in a unique and modern way!
     """)
 
+    st.markdown("---")
+    # Video player in centered column
+    col1, col2, col3 = st.columns([0.5, 2, 0.5], gap="medium")
+    with col2:
+        st.video("https://www.youtube.com/watch?v=6SuLXoRmykE")
+
+    st.markdown("<div style='margin-bottom: 1.5rem;'></div>", unsafe_allow_html=True)
+    
+    # Video section with styled heading
+    st.markdown("""
+<div style="text-align: center; margin: 2rem 0 1rem 0;">
+    <h3 style="color: #333; margin-bottom: 0.5rem;">See It In Action</h3>
+    <p style="color: #666; margin-bottom: 1.5rem; font-size: 1rem;">
+        Watch a quick demo of how easy it is to create and share personalized greeting QR codes.
+    </p>
+</div>
+""", unsafe_allow_html=True)
+
+    # Video player in centered column
+    col1, col2, col3 = st.columns([0.5, 2, 0.5], gap="medium")
+    with col2:
+        st.video("https://www.youtube.com/watch?v=hJdGamlet5A")
+
+    st.markdown("<div style='margin-bottom: 1.5rem;'></div>", unsafe_allow_html=True)
+
     # Core positioning messages
     st.markdown("---")
     st.subheader("Why Choose QR Greetings?")

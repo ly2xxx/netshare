@@ -504,10 +504,18 @@ def generate_qr_code(data: str, theme: str = "general", error_correction=qrcode.
 
 def create_greeting_tab():
     """Tab for creating new greeting QR codes"""
-    st.markdown('<div class="main-header"><h1>🎄 Create Holiday Greeting QR Code</h1></div>',
-                unsafe_allow_html=True)
-
-    st.markdown("### *A greener, smarter way to say happy holidays.*")
+    # Display the banner image as the header (left-aligned, smaller for clarity)
+    banner_path = os.path.join(os.path.dirname(__file__), "banner", "qr-greeting-banner-4x.png")
+    if os.path.exists(banner_path):
+        col1, col2 = st.columns([3, 2])
+        with col1:
+            st.image(banner_path, use_container_width=True)
+    else:
+        # Fallback to text header if banner not found
+        st.markdown('<div class="main-header"><h1>🎄 Create Holiday Greeting QR Code</h1></div>',
+                    unsafe_allow_html=True)
+        st.markdown("### *A greener, smarter way to say happy holidays.*")
+    
     st.write("Create a personalized holiday greeting that can be shared via QR code!")
 
     # Two column layout

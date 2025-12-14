@@ -38,6 +38,107 @@ from greeting_formats import (
 
 
 # ============================================================================
+# Embedded API Server Management
+# ============================================================================
+
+def start_embedded_api_server():
+    """
+    Start FastAPI server in background thread
+    Only starts once per Streamlit session
+
+    Returns:
+        True if server started/running, False if failed
+    """
+    import threading
+    import uvicorn
+    from pathlib import Path
+    import sys
+
+    # Check if already started
+    if 'api_server_started' in st.session_state and st.session_state.api_server_started:
+        return True
+
+    # Prevent multiple starts during Streamlit reruns
+    if 'api_server_starting' in st.session_state and st.session_state.api_server_starting:
+        return False
+
+    st.session_state.api_server_starting = True
+
+    try:
+        # Add qr_api to Python path
+        qr_api_path = Path(__file__).parent / "qr_api"
+        if str(qr_api_path.parent) not in sys.path:
+            sys.path.insert(0, str(qr_api_path.parent))
+
+        # Import after path setup
+        from qr_api.main import app
+        from qr_api.config import API_HOST, API_PORT
+
+        # Create uvicorn server config
+        config = uvicorn.Config(
+            app=app,
+            host=API_HOST,
+            port=API_PORT,
+            log_level="warning",  # Reduce noise
+            access_log=False
+        )
+
+        server = uvicorn.Server(config)
+
+        # Run server in daemon thread
+        def run_server():
+            import asyncio
+            try:
+                asyncio.run(server.serve())
+            except Exception as e:
+                print(f"[API Server] Error: {e}")
+
+        thread = threading.Thread(target=run_server, daemon=True, name="QR-API-Server")
+        thread.start()
+
+        # Wait for server to start (max 3 seconds)
+        import time
+        from api_client import QRApiClient
+
+        client = QRApiClient(timeout=1.0)
+        for i in range(30):  # 30 attempts x 0.1s = 3 seconds
+            time.sleep(0.1)
+            if client.health_check():
+                print(f"[API Server] Started successfully on port {API_PORT}")
+                st.session_state.api_server_started = True
+                st.session_state.api_server_starting = False
+                client.close()
+                return True
+
+        client.close()
+        print("[API Server] Failed to start within timeout")
+        st.session_state.api_server_starting = False
+        return False
+
+    except Exception as e:
+        print(f"[API Server] Startup error: {e}")
+        st.session_state.api_server_starting = False
+        return False
+
+
+def get_api_client():
+    """
+    Get API client if server is running
+
+    Returns:
+        QRApiClient instance or None
+    """
+    if not st.session_state.get('api_server_started', False):
+        return None
+
+    try:
+        from api_client import QRApiClient
+        return QRApiClient()
+    except Exception:
+        return None
+
+
+# ============================================================================
 # Download Tracking Functions
 # ============================================================================
 
@@ -502,6 +603,48 @@ def generate_qr_code(data: str, theme: str = "general", error_correction=qrcode.
     return pil_img
 
 
+def generate_qr_code_with_fallback(
+    data: str,
+    theme: str = "general",
+    error_correction: str = "H"
+) -> Image.Image:
+    """
+    Generate QR code with API-first, fallback-second pattern
+
+    Args:
+        data: Data to encode
+        theme: Theme name
+        error_correction: Error correction level
+
+    Returns:
+        PIL Image of QR code
+    """
+    # Try API first
+    api_client = get_api_client()
+    if api_client is not None:
+        try:
+            qr_img = api_client.generate_qr(data, theme, error_correction)
+            if qr_img is not None:
+                api_client.close()
+                return qr_img
+        except Exception as e:
+            print(f"[Fallback] API failed, using local: {e}")
+        finally:
+            if api_client:
+                api_client.close()
+
+    # Fallback to local function
+    ec_map = {
+        "L": qrcode.constants.ERROR_CORRECT_L,
+        "M": qrcode.constants.ERROR_CORRECT_M,
+        "Q": qrcode.constants.ERROR_CORRECT_Q,
+        "H": qrcode.constants.ERROR_CORRECT_H,
+    }
+    ec_level = ec_map.get(error_correction, qrcode.constants.ERROR_CORRECT_H)
+
+    return generate_qr_code(data, theme, ec_level)
+
+
 def create_greeting_tab():
     """Tab for creating new greeting QR codes"""
     st.markdown('<div class="main-header"><h1>🎄 Create Holiday Greeting QR Code</h1></div>',
@@ -574,8 +717,8 @@ def create_greeting_tab():
                 # Get statistics based on URL length
                 stats = get_greeting_stats(greeting_url)
 
-                # Generate QR code with URL data and theme icon
-                qr_img = generate_qr_code(greeting_url, theme=theme)
+                # Generate QR code with URL data and theme icon (API-first with fallback)
+                qr_img = generate_qr_code_with_fallback(greeting_url, theme=theme, error_correction="H")
 
                 # Display QR code
                 display_qr_with_protection(qr_img, caption=f"Greeting QR Code for {to_name}", width=None)
@@ -795,7 +938,7 @@ def examples_tab():
                 )
                 # Use URL encoding for QR code
                 greeting_url = encode_greeting_to_url(greeting)
-                qr_img = generate_qr_code(greeting_url, theme=example['theme'])
+                qr_img = generate_qr_code_with_fallback(greeting_url, theme=example['theme'], error_correction="H")
                 display_qr_with_protection(qr_img, caption="QR Code", width=None)
 
 
@@ -981,6 +1124,16 @@ def view_greeting_page(query_params: dict):
 
 def main():
     """Main application"""
+
+    # Start embedded API server (runs once per session)
+    if 'api_startup_attempted' not in st.session_state:
+        st.session_state.api_startup_attempted = True
+        api_started = start_embedded_api_server()
+
+        if not api_started:
+            # Show subtle warning in sidebar (not blocking)
+            with st.sidebar:
+                st.warning("⚠️ API service unavailable - using local fallback", icon="⚠️")
 
     # Sidebar
     with st.sidebar:

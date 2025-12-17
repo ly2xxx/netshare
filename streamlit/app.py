@@ -507,9 +507,13 @@ def generate_qr_code(data: str, theme: str = "general", visible_message: str = N
             font_path = None
             font_size = 20 # Start with a baseline
             
-            # Common fonts to try
-            font_names = ["arial.ttf", "calibri.ttf", "seguiemj.ttf", "segoeui.ttf", 
-                          "LiberationSans-Regular.ttf", "DejaVuSans.ttf"]
+            # Common fonts to try (including CJK support)
+            # msyh.ttf = Microsoft YaHei (Windows Chinese)
+            # simhei.ttf = SimHei (Windows Chinese)
+            # NotoSansCJK... = Linux CJK
+            font_names = ["msyh.ttf", "simhei.ttf", "arial.ttf", "calibri.ttf", "seguiemj.ttf", 
+                          "segoeui.ttf", "LiberationSans-Regular.ttf", "DejaVuSans.ttf",
+                          "WenQuanYiMicroHei.ttf", "NotoSansCJK-Regular.ttc"]
             
             for name in font_names:
                 try:

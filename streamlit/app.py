@@ -6,7 +6,7 @@ A Streamlit app for creating and reading holiday greeting QR codes
 
 import streamlit as st
 import qrcode
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 import io
 import json
 from datetime import datetime
@@ -436,7 +436,7 @@ def render_theme_selector() -> str:
     return selected_theme
 
 
-def generate_qr_code(data: str, theme: str = "general", error_correction=qrcode.constants.ERROR_CORRECT_H) -> Image.Image:
+def generate_qr_code(data: str, theme: str = "general", visible_message: str = None, error_correction=qrcode.constants.ERROR_CORRECT_H) -> Image.Image:
     """
     Generate QR code from data string
 
@@ -499,6 +499,103 @@ def generate_qr_code(data: str, theme: str = "general", error_correction=qrcode.
             # If icon embedding fails, just return plain QR code
             print(f"Warning: Could not embed icon for theme '{theme}': {e}")
 
+
+    # Add visible message if provided
+    if visible_message:
+        try:
+            # Prepare for font loading
+            font_path = None
+            font_size = 20 # Start with a baseline
+            
+            # Common fonts to try
+            font_names = ["arial.ttf", "calibri.ttf", "seguiemj.ttf", "segoeui.ttf", 
+                          "LiberationSans-Regular.ttf", "DejaVuSans.ttf"]
+            
+            for name in font_names:
+                try:
+                    # check if we can load it
+                    ImageFont.truetype(name, font_size)
+                    font_path = name
+                    break
+                except OSError:
+                    continue
+            
+            # Helper to get text size
+            def get_text_size(text, font):
+                draw_dummy = ImageDraw.Draw(pil_img)
+                if hasattr(draw_dummy, 'textbbox'):
+                    bbox = draw_dummy.textbbox((0, 0), text, font=font)
+                    return bbox[2] - bbox[0], bbox[3] - bbox[1]
+                else:
+                    return draw_dummy.textsize(text, font=font)
+
+            qr_width, qr_height = pil_img.size
+            target_width = qr_width * 0.9  # Use 90% of width for safe margins (5% each side)
+            
+            # Formatting
+            padding = int(qr_height * 0.05) # 5% of QR height as vertical padding
+            if padding < 20: padding = 20
+            
+            text_padding = int(padding / 2)
+
+            font = None
+            if font_path:
+                # Iterative sizing or calculation
+                # Heuristic: Width is roughly proportional to font size
+                # 1. Measure at base size
+                test_font = ImageFont.truetype(font_path, font_size)
+                w, h = get_text_size(visible_message, test_font)
+                
+                if w > 0:
+                    # Calculate desired size
+                    # scale = target / current
+                    scale_factor = target_width / w
+                    new_font_size = int(font_size * scale_factor)
+                    
+                    # Clamp limits
+                    min_size = 12
+                    max_size = int(qr_height * 0.2) # Max text height 20% of QR? Or just cap size. 
+                                                  # Let's cap max size to avoid absurdity on short words like "Hi"
+                    
+                    if new_font_size < min_size: new_font_size = min_size
+                    if new_font_size > max_size: new_font_size = max_size
+                    
+                    font_size = new_font_size
+                    font = ImageFont.truetype(font_path, font_size)
+                else:
+                    font = test_font
+            else:
+                # Fallback to default (cannot resize)
+                font = ImageFont.load_default()
+
+            # Final measurement
+            text_width, text_height = get_text_size(visible_message, font)
+            
+            # Create new image
+            # Width: at least QR width. If text is somehow wider (min size limit), expand.
+            final_width = max(qr_width, text_width + int(qr_width * 0.1)) # Ensure margins if text is wider
+            final_height = qr_height + text_height + 2 * padding
+            
+            new_img = Image.new('RGB', (final_width, final_height), 'white')
+            
+            # Paste QR code (centered horizontally)
+            qr_x = (final_width - qr_width) // 2
+            qr_y = padding // 2
+            new_img.paste(pil_img, (qr_x, qr_y))
+            
+            # Draw text (centered horizontally, below QR)
+            draw_new = ImageDraw.Draw(new_img)
+            text_x = (final_width - text_width) // 2
+            text_y = qr_y + qr_height + text_padding
+            
+            draw_new.text((text_x, text_y), visible_message, fill="black", font=font)
+            
+            return new_img
+            
+        except Exception as e:
+            print(f"Warning: Failed to add visible message: {e}")
+            return pil_img
+
     return pil_img
 
 
@@ -551,6 +648,13 @@ def create_greeting_tab():
                 help="Your personalized greeting message",
                 key="greeting_message"
             )
+            
+            visible_message = st.text_input(
+                "Visible Message (Optional)",
+                placeholder="Scan me!",
+                help="Short text to display below the QR code image",
+                key="greeting_visible_message"
+            )
 
             # Character counter
             if message:
@@ -583,7 +687,7 @@ def create_greeting_tab():
                 stats = get_greeting_stats(greeting_url)
 
                 # Generate QR code with URL data and theme icon
-                qr_img = generate_qr_code(greeting_url, theme=theme)
+                qr_img = generate_qr_code(greeting_url, theme=theme, visible_message=visible_message)
 
                 # Display QR code
                 display_qr_with_protection(qr_img, caption=f"Greeting QR Code for {to_name}", width=None)

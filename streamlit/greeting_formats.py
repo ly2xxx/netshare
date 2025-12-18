@@ -51,6 +51,11 @@ def encode_greeting_to_url(greeting: Dict, base_url: str = GREETING_APP_URL) -> 
         "th": theme
     }
     
+    # Add background if specified
+    background = greeting.get("background", "")
+    if background:
+        params["bg"] = background
+    
     query = urlencode(params, safe='')
     
     # Add message parameter (already formatted)
@@ -99,8 +104,11 @@ def decode_greeting_from_url(query_params: Dict) -> Optional[Dict]:
         
         if not message:
             return None
+        
+        # Get background if specified
+        background = get_param("bg", "")
             
-        return {
+        greeting = {
             "v": "1.0",
             "type": "greeting",
             "from": from_name,
@@ -109,6 +117,9 @@ def decode_greeting_from_url(query_params: Dict) -> Optional[Dict]:
             "theme": theme,
             "created": datetime.utcnow().isoformat()
         }
+        if background:
+            greeting["background"] = background
+        return greeting
     except Exception:
         return None
 
@@ -117,7 +128,8 @@ def create_holiday_greeting(
     from_name: str,
     to_name: str,
     message: str,
-    theme: str = "general"
+    theme: str = "general",
+    background: str = ""
 ) -> Dict:
     """
     Create a structured holiday greeting payload
@@ -131,13 +143,16 @@ def create_holiday_greeting(
     Returns:
         Dictionary containing greeting data
     """
-    return {
+    greeting = {
         "message": message,
         "from": from_name,
         "to": to_name,
         "theme": theme,
         "created": datetime.utcnow().isoformat()
     }
+    if background:
+        greeting["background"] = background
+    return greeting
 
 
 def compact_greeting(payload: Dict) -> str:

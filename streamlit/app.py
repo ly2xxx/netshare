@@ -299,9 +299,42 @@ def display_greeting_letter(greeting):
             b64_icon = get_img_as_base64(icon_path)
             icon_html = f'<img src="data:image/png;base64,{b64_icon}" class="letter-watermark">'
 
+    # Handle background if specified
+    background_html = ""
+    background_style = ""
+    background_name = greeting.get('background', '')
+    
+    if background_name:
+        keep_path = os.path.join(os.path.dirname(__file__), "keep", background_name)
+        if os.path.exists(keep_path):
+            ext = os.path.splitext(background_name)[1].lower()
+            
+            if ext in ['.mp4', '.webm']:
+                # Video background - embed as base64
+                b64_video = get_img_as_base64(keep_path)
+                mime = "video/mp4" if ext == ".mp4" else "video/webm"
+                background_html = f'''
+                <video autoplay loop muted playsinline style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; opacity: 0.3;">
+                    <source src="data:{mime};base64,{b64_video}" type="{mime}">
+                </video>
+                '''
+            elif ext in ['.png', '.jpg', '.jpeg', '.gif']:
+                # Image background
+                b64_img = get_img_as_base64(keep_path)
+                background_style = f"background-image: url('data:image/{ext[1:]};base64,{b64_img}'); background-size: cover; background-position: center;"
+
+    # Only add positioning styles if we have a background
+    additional_style = ""
+    if background_name and (background_html or background_style):
+        additional_style = "position: relative; overflow: hidden;"
+
+    # Combine styles
+    final_style = f"{background_style} {additional_style}".strip() if (background_style or additional_style) else ""
+
     # Render HTML Letter
     st.markdown(f"""
-    <div class="letter-container">
+    <div class="letter-container" {f'style="{final_style}"' if final_style else ''}>
+        {background_html}
         <div class="letter-header">
             <div class="letter-to"><strong>To:</strong> {greeting.get('to', 'Friend')}</div>
             <div class="letter-from"><strong>From:</strong> {greeting.get('from', 'Me')}</div>
@@ -919,6 +952,207 @@ def examples_tab():
                 display_qr_with_protection(qr_img, caption="QR Code", width=None)
 
 
+def get_available_backgrounds():
+    """Get list of available background files from keep/ folder"""
+    keep_path = Path(__file__).parent / "keep"
+    if not keep_path.exists():
+        return []
+    
+    # Support images and videos
+    extensions = {'.png', '.jpg', '.jpeg', '.gif', '.mp4', '.webm'}
+    backgrounds = []
+    for f in keep_path.iterdir():
+        if f.suffix.lower() in extensions:
+            backgrounds.append(f.name)
+    return sorted(backgrounds)
+
+
+def batch_greeting_tab():
+    """Tab for batch QR code generation from Excel"""
+    st.markdown('<div class="main-header"><h1>📦 Batch QR Code Generation</h1></div>',
+                unsafe_allow_html=True)
+    
+    st.write("Generate multiple QR codes at once by uploading an Excel spreadsheet.")
+    
+    # Available themes and backgrounds for reference
+    available_themes = list(THEME_ICONS.keys())
+    available_backgrounds = get_available_backgrounds()
+    
+    st.markdown("---")
+    
+    # Template download section
+    st.subheader("1. Download Template")
+    st.write("Download the Excel template, fill in your greetings, then upload it below.")
+    
+    # Create template Excel file in memory
+    try:
+        import pandas as pd
+        from io import BytesIO
+        
+        # Create sample data
+        sample_data = {
+            "From": ["Alice", "Bob"],
+            "To": ["Bob", "Alice"],
+            "Message": ["Merry Christmas!", "Happy New Year!"],
+            "Theme": ["snowflake", "fireworks"],
+            "Background": ["", "christmastree.mp4"],
+            "VisibleMessage": ["Scan me!", ""]
+        }
+        df_template = pd.DataFrame(sample_data)
+        
+        # Save to BytesIO
+        output = BytesIO()
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df_template.to_excel(writer, index=False, sheet_name='Greetings')
+            
+            # Add a reference sheet with valid options
+            ref_data = {
+                "Valid Themes": available_themes + [""] * (max(0, len(available_backgrounds) - len(available_themes))),
+                "Valid Backgrounds": available_backgrounds + [""] * (max(0, len(available_themes) - len(available_backgrounds)))
+            }
+            # Pad to same length
+            max_len = max(len(available_themes), len(available_backgrounds))
+            ref_data["Valid Themes"] = (available_themes + [""] * max_len)[:max_len]
+            ref_data["Valid Backgrounds"] = (available_backgrounds + [""] * max_len)[:max_len]
+            
+            df_ref = pd.DataFrame(ref_data)
+            df_ref.to_excel(writer, index=False, sheet_name='Valid Options')
+        
+        excel_bytes = output.getvalue()
+        
+        st.download_button(
+            label="📥 Download Template (.xlsx)",
+            data=excel_bytes,
+            file_name="qr_greeting_template.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+        
+        # Show valid options for reference
+        with st.expander("View Valid Options"):
+            col1, col2 = st.columns(2)
+            with col1:
+                st.write("**Valid Themes:**")
+                for theme in available_themes:
+                    emoji = THEME_ICONS.get(theme, "")
+                    st.write(f"- `{theme}` {emoji if emoji else ''}")
+            with col2:
+                st.write("**Valid Backgrounds:**")
+                if available_backgrounds:
+                    for bg in available_backgrounds:
+                        st.write(f"- `{bg}`")
+                else:
+                    st.write("No backgrounds available in `keep/` folder")
+        
+    except ImportError:
+        st.error("pandas and openpyxl are required for batch processing. Please install them: `pip install pandas openpyxl`")
+        return
+    
+    st.markdown("---")
+    
+    # Upload section
+    st.subheader("2. Upload Filled Template")
+    
+    uploaded_file = st.file_uploader(
+        "Choose your filled Excel file",
+        type=['xlsx', 'xls'],
+        help="Upload the template with your greeting data"
+    )
+    
+    if uploaded_file is not None:
+        try:
+            df = pd.read_excel(uploaded_file, sheet_name='Greetings')
+            
+            st.success(f"Loaded {len(df)} greetings from Excel!")
+            
+            # Preview data
+            with st.expander("Preview Data"):
+                st.dataframe(df)
+            
+            # Validate data
+            required_cols = ["From", "To", "Message"]
+            missing_cols = [col for col in required_cols if col not in df.columns]
+            
+            if missing_cols:
+                st.error(f"Missing required columns: {', '.join(missing_cols)}")
+                return
+            
+            # Validate themes
+            if "Theme" in df.columns:
+                invalid_themes = df[~df["Theme"].isna() & ~df["Theme"].isin(available_themes)]["Theme"].unique()
+                if len(invalid_themes) > 0:
+                    st.warning(f"Some rows have invalid themes: {list(invalid_themes)}. They will use 'general'.")
+            
+            # Generate button
+            if st.button("🚀 Generate All QR Codes", type="primary"):
+                import zipfile
+                
+                zip_buffer = BytesIO()
+                
+                progress = st.progress(0)
+                status = st.empty()
+                
+                with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
+                    for idx, row in df.iterrows():
+                        from_name = str(row.get("From", ""))
+                        to_name = str(row.get("To", ""))
+                        message = str(row.get("Message", ""))
+                        theme = str(row.get("Theme", "general")) if pd.notna(row.get("Theme")) else "general"
+                        background = str(row.get("Background", "")) if pd.notna(row.get("Background")) else ""
+                        visible_msg = str(row.get("VisibleMessage", "")) if pd.notna(row.get("VisibleMessage")) else ""
+                        
+                        # Validate theme
+                        if theme not in available_themes:
+                            theme = "general"
+                        
+                        # Validate background
+                        if background and background not in available_backgrounds:
+                            background = ""
+                        
+                        status.text(f"Generating QR {idx + 1}/{len(df)}: {to_name}...")
+                        
+                        # Create greeting
+                        greeting = create_holiday_greeting(
+                            from_name=from_name,
+                            to_name=to_name,
+                            message=message,
+                            theme=theme,
+                            background=background
+                        )
+                        
+                        # Encode to URL
+                        greeting_url = encode_greeting_to_url(greeting)
+                        
+                        # Generate QR code
+                        qr_img = generate_qr_code(greeting_url, theme=theme, visible_message=visible_msg)
+                        
+                        # Save to zip
+                        img_buffer = BytesIO()
+                        qr_img.save(img_buffer, format='PNG')
+                        img_buffer.seek(0)
+                        
+                        # Filename: to_name_index.png
+                        safe_name = "".join(c for c in to_name if c.isalnum() or c in (' ', '-', '_')).strip()
+                        filename = f"{safe_name}_{idx + 1}.png"
+                        
+                        zf.writestr(filename, img_buffer.read())
+                        
+                        progress.progress((idx + 1) / len(df))
+                
+                status.text("✅ All QR codes generated!")
+                
+                zip_buffer.seek(0)
+                
+                st.download_button(
+                    label="📥 Download All QR Codes (ZIP)",
+                    data=zip_buffer.getvalue(),
+                    file_name=f"qr_codes_{datetime.now().strftime('%Y%m%d_%H%M%S')}.zip",
+                    mime="application/zip"
+                )
+                
+        except Exception as e:
+            st.error(f"Error processing Excel file: {str(e)}")
+
+
 def about_tab():
     """About the application"""
     st.markdown('<div class="main-header"><h1>ℹ️ About</h1></div>',
@@ -1145,6 +1379,11 @@ def main():
 
         🎨 Choose themes that match your occasion
         """)
+        
+        st.markdown("---")
+        
+        # Batch tab toggle
+        show_batch = st.checkbox("Show Batch Tab", value=False, help="Enable batch QR code generation from Excel")
 
     # Read query param for tab selection
     try:
@@ -1161,8 +1400,11 @@ def main():
         view_greeting_page(dict(query_params))
         return  # Don't show the normal app interface
 
-    # Map tab names to indices
-    tab_map = {"create": 0, "scan": 1, "examples": 2, "about": 3}
+    # Map tab names to indices (depends on whether batch tab is shown)
+    if show_batch:
+        tab_map = {"create": 0, "scan": 1, "examples": 2, "batch": 3, "about": 4}
+    else:
+        tab_map = {"create": 0, "scan": 1, "examples": 2, "about": 3}
     tab_index = tab_map.get(tab_param, 0)
 
     # Inject JavaScript to click the correct tab (only if not the first tab)
@@ -1190,20 +1432,38 @@ def main():
             </script>
         """, height=0)
 
-    # Main tabs
-    tab1, tab2, tab3, tab4 = st.tabs(["Create Greeting", "Scan QR Code", "Examples", "About"])
+    # Main tabs (conditionally include batch tab)
+    if show_batch:
+        tab1, tab2, tab3, tab4, tab5 = st.tabs(["Create Greeting", "Scan QR Code", "Examples", "Batch", "About"])
+        
+        with tab1:
+            create_greeting_tab()
 
-    with tab1:
-        create_greeting_tab()
+        with tab2:
+            scan_greeting_tab()
 
-    with tab2:
-        scan_greeting_tab()
+        with tab3:
+            examples_tab()
 
-    with tab3:
-        examples_tab()
+        with tab4:
+            batch_greeting_tab()
 
-    with tab4:
-        about_tab()
+        with tab5:
+            about_tab()
+    else:
+        tab1, tab2, tab3, tab4 = st.tabs(["Create Greeting", "Scan QR Code", "Examples", "About"])
+
+        with tab1:
+            create_greeting_tab()
+
+        with tab2:
+            scan_greeting_tab()
+
+        with tab3:
+            examples_tab()
+
+        with tab4:
+            about_tab()
 
 
 if __name__ == "__main__":

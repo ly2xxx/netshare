@@ -203,3 +203,4 @@ Potential features for future versions:
 
 https://www.techspot.com/guides/1676-qr-code-explained/
 
+![alt text](image-4.png)

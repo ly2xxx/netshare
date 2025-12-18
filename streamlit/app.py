@@ -244,10 +244,13 @@ def display_qr_with_protection(qr_img: Image.Image, caption: str = "", width: in
     max_display_width = 500
     actual_display_width = min(img_width, max_display_width)
 
-    # QR codes are square, so height = width
+    # QR codes are square usually, but visible message increases height
+    # Calculate height based on aspect ratio
+    scaled_height = actual_display_width * (img_height / img_width) if img_width > 0 else actual_display_width
+
     # Add extra space for caption and margins
     caption_space = 80 if caption else 40
-    iframe_height = actual_display_width + caption_space
+    iframe_height = scaled_height + caption_space
 
     # Build protected HTML with inline styles and JavaScript
     width_style = f"max-width: {max_display_width}px; width: 100%;"
@@ -540,7 +543,8 @@ def generate_qr_code(data: str, theme: str = "general", visible_message: str = N
             padding = int(qr_height * 0.05) # 5% of QR height as vertical padding
             if padding < 20: padding = 20
             
-            text_padding = int(padding / 2)
+            # Use tighter padding for the text
+            text_padding = 0  # Reduce spacing between QR and text
 
             font = None
             if font_path:

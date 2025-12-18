@@ -5,6 +5,9 @@
 		},
 		{
 			"path": "../../3rd/amazing-qr"
+		},
+		{
+			"path": "../qrgreeting/streamlit"
 		}
 	],
 	"settings": {}

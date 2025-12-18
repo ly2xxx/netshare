@@ -313,15 +313,16 @@ def display_greeting_letter(greeting):
                 # Video background - embed as base64
                 b64_video = get_img_as_base64(keep_path)
                 mime = "video/mp4" if ext == ".mp4" else "video/webm"
-                background_html = f'''
-                <video autoplay loop muted playsinline style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; opacity: 0.3;">
-                    <source src="data:{mime};base64,{b64_video}" type="{mime}">
-                </video>
-                '''
+                background_html = f'<video autoplay loop muted playsinline style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; opacity: 0.3;"><source src="data:{mime};base64,{b64_video}" type="{mime}"></video>'
+            elif ext in ['.mp3', '.wav', '.ogg']:
+                # Audio background - embed as base64
+                b64_audio = get_img_as_base64(keep_path)
+                mime = {".mp3": "audio/mpeg", ".wav": "audio/wav", ".ogg": "audio/ogg"}.get(ext, "audio/mpeg")
+                background_html = f'<audio autoplay loop style="position: absolute; bottom: 10px; left: 10px; z-index: 10; opacity: 0.7; width: 200px;"><source src="data:{mime};base64,{b64_audio}" type="{mime}"></audio>'
             elif ext in ['.png', '.jpg', '.jpeg', '.gif']:
                 # Image background
                 b64_img = get_img_as_base64(keep_path)
-                background_style = f"background-image: url('data:image/{ext[1:]};base64,{b64_img}'); background-size: cover; background-position: center;"
+                background_style = f"background-image: url(data:image/{ext[1:]};base64,{b64_img}); background-size: cover; background-position: center;"
 
     # Only add positioning styles if we have a background
     additional_style = ""
@@ -331,23 +332,97 @@ def display_greeting_letter(greeting):
     # Combine styles
     final_style = f"{background_style} {additional_style}".strip() if (background_style or additional_style) else ""
 
+    # Construct opening div tag with or without style
+    if final_style:
+        container_opening = f'<div class="letter-container" style="{final_style}">'
+    else:
+        container_opening = '<div class="letter-container">'
+
     # Render HTML Letter
-    st.markdown(f"""
-    <div class="letter-container" {f'style="{final_style}"' if final_style else ''}>
-        {background_html}
-        <div class="letter-header">
-            <div class="letter-to"><strong>To:</strong> {greeting.get('to', 'Friend')}</div>
-            <div class="letter-from"><strong>From:</strong> {greeting.get('from', 'Me')}</div>
-        </div>
-        <div class="letter-body">
+    # Use components.html() for greetings with backgrounds (handles large base64 data)
+    # Use st.markdown() for greetings without backgrounds (faster, cleaner)
+    if background_html or background_style:
+        # Include inline CSS styles when using components.html() (doesn't inherit Streamlit CSS)
+        html_content = f"""
+        <style>
+        .letter-container {{
+            background-color: #fdfbf7;
+            padding: 40px;
+            border-radius: 5px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            border: 1px solid #e0e0e0;
+            min-height: 400px;
+            position: relative;
+            font-family: 'Georgia', serif;
+            color: #333;
+            margin-top: 20px;
+        }}
+        .letter-header {{
+            margin-bottom: 30px;
+            border-bottom: 2px solid #eee;
+            padding-bottom: 10px;
+        }}
+        .letter-from, .letter-to {{
+            font-size: 1.1em;
+            margin: 5px 0;
+        }}
+        .letter-body {{
+            font-size: 1.25em;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            margin-bottom: 60px;
+        }}
+        .letter-watermark {{
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            opacity: 0.8;
+            width: 100px;
+            height: 100px;
+        }}
+        .letter-footer {{
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            font-size: 0.8em;
+            color: #888;
+        }}
+        </style>
+        {container_opening}
+            {background_html}
+            <div class="letter-header">
+                <div class="letter-to"><strong>To:</strong> {greeting.get('to', 'Friend')}</div>
+                <div class="letter-from"><strong>From:</strong> {greeting.get('from', 'Me')}</div>
+            </div>
+            <div class="letter-body">
 {greeting.get('message', '')}
+            </div>
+            {icon_html}
+            <div class="letter-footer">
+                Created: {greeting.get('created', '').split('T')[0]}
+            </div>
         </div>
-        {icon_html}
-        <div class="letter-footer">
-            Created: {greeting.get('created', '').split('T')[0]}
+        """
+        # Use components.html() to handle large base64 data without size limits
+        components.html(html_content, height=600, scrolling=True)
+    else:
+        # No background: use st.markdown() (inherits Streamlit CSS)
+        html_content = f"""
+        {container_opening}
+            <div class="letter-header">
+                <div class="letter-to"><strong>To:</strong> {greeting.get('to', 'Friend')}</div>
+                <div class="letter-from"><strong>From:</strong> {greeting.get('from', 'Me')}</div>
+            </div>
+            <div class="letter-body">
+{greeting.get('message', '')}
+            </div>
+            {icon_html}
+            <div class="letter-footer">
+                Created: {greeting.get('created', '').split('T')[0]}
+            </div>
         </div>
-    </div>
-    """, unsafe_allow_html=True)
+        """
+        st.markdown(html_content, unsafe_allow_html=True)
 
 
 def load_theme_icon(theme: str, size: int = 100) -> Image.Image:

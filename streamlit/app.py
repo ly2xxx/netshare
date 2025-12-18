@@ -1064,14 +1064,14 @@ def batch_greeting_tab():
         import pandas as pd
         from io import BytesIO
         
-        # Create sample data with 3 test cases
+        # Create sample data with 4 test cases
         sample_data = {
-            "From": ["Alice", "Bob", "Charlie"],
-            "To": ["Bob", "Alice", "Dana"],
-            "Message": ["Merry Christmas!", "Happy New Year!", "Season's Greetings!"],
-            "Theme": ["snowflake", "fireworks", "hearts"],
-            "Background": ["", "christmastree.mp4", "wallpaper.jpg"],
-            "VisibleMessage": ["Scan me!", "", "Happy Holidays!"]
+            "From": ["Alice", "Bob", "Charlie", "David"],
+            "To": ["Bob", "Alice", "Dana", "Eve"],
+            "Message": ["Merry Christmas!", "Happy New Year!", "Season's Greetings!", "Enjoy the holidays!"],
+            "Theme": ["snowflake", "fireworks", "hearts", "lights"],
+            "Background": ["", "christmastree.mp4", "wallpaper.jpg", "christmas-lights.gif"],
+            "VisibleMessage": ["Scan me!", "", "Happy Holidays!", "Ho Ho Ho!"]
         }
         df_template = pd.DataFrame(sample_data)
         

@@ -323,7 +323,7 @@ def display_greeting_letter(greeting):
                 # Video background - embed as base64
                 b64_video = get_img_as_base64(background_path)
                 mime = "video/mp4" if ext == ".mp4" else "video/webm"
-                background_html = f'<video autoplay loop muted playsinline style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; opacity: 0.3;"><source src="data:{mime};base64,{b64_video}" type="{mime}"></video>'
+                background_html = f'<video autoplay loop muted playsinline style="position: absolute; top: 50%; left: 50%; min-width: 100%; min-height: 100%; width: auto; height: auto; transform: translate(-50%, -50%); object-fit: cover; z-index: -1; opacity: 0.7;"><source src="data:{mime};base64,{b64_video}" type="{mime}"></video>'
             elif ext in ['.mp3', '.wav', '.ogg']:
                 # Audio background - embed as base64
                 b64_audio = get_img_as_base64(background_path)
@@ -352,6 +352,12 @@ def display_greeting_letter(greeting):
     # Use components.html() for greetings with backgrounds (handles large base64 data)
     # Use st.markdown() for greetings without backgrounds (faster, cleaner)
     if background_html or background_style:
+        # Add 'with-background' class for enhanced text contrast
+        container_opening_with_bg = container_opening.replace(
+            'class="letter-container"',
+            'class="letter-container with-background"'
+        )
+
         # Include inline CSS styles when using components.html() (doesn't inherit Streamlit CSS)
         html_content = f"""
         <style>
@@ -362,14 +368,58 @@ def display_greeting_letter(greeting):
             box-shadow: 0 4px 6px rgba(0,0,0,0.1);
             border: 1px solid #e0e0e0;
             min-height: 400px;
+            max-width: 100%;
+            width: 100%;
+            height: auto;
             position: relative;
             font-family: 'Georgia', serif;
             color: #333;
             margin-top: 20px;
+            overflow: hidden;
         }}
+
+        /* Dark overlay for better text readability on backgrounds */
+        .letter-container.with-background::before {{
+            content: "";
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.25);
+            z-index: 0;
+            pointer-events: none;
+        }}
+
+        /* White text with shadows for backgrounds */
+        .letter-container.with-background {{
+            color: white;
+        }}
+
+        .letter-container.with-background .letter-header,
+        .letter-container.with-background .letter-to,
+        .letter-container.with-background .letter-from,
+        .letter-container.with-background .letter-body,
+        .letter-container.with-background .letter-footer {{
+            position: relative;
+            z-index: 1;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.9),
+                         1px 1px 2px rgba(0, 0, 0, 0.8),
+                         -1px -1px 1px rgba(0, 0, 0, 0.7);
+        }}
+
+        # /* Semi-transparent background for message body */
+        # .letter-container.with-background .letter-body {{
+        #     background: rgba(0, 0, 0, 0.35);
+        #     padding: 20px;
+        #     border-radius: 8px;
+        #     backdrop-filter: blur(3px);
+        # }}
+
         .letter-header {{
             margin-bottom: 30px;
-            border-bottom: 2px solid #eee;
+            border-bottom: 2px solid rgba(255, 255, 255, 0.5);
             padding-bottom: 10px;
         }}
         .letter-from, .letter-to {{
@@ -389,16 +439,17 @@ def display_greeting_letter(greeting):
             opacity: 0.8;
             width: 100px;
             height: 100px;
+            z-index: 1;
         }}
         .letter-footer {{
             position: absolute;
             bottom: 20px;
             left: 20px;
             font-size: 0.8em;
-            color: #888;
+            z-index: 1;
         }}
         </style>
-        {container_opening}
+        {container_opening_with_bg}
             {background_html}
             <div class="letter-header">
                 <div class="letter-to"><strong>To:</strong> {greeting.get('to', 'Friend')}</div>

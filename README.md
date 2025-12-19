@@ -473,3 +473,5 @@ For persistent issues, please create an issue in the repository with:
 ---
 
 **⚠️ Security Notice**: NetShare is designed for local network file sharing. Only use on trusted networks and share folders containing non-sensitive files. Always stop the server when not in use.
+![alt text](image-2.png)
+![alt text](image-3.png)

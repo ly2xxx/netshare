@@ -122,6 +122,7 @@ THEME_ICONS = {
     "confetti": "🎉",
     "champagne": "🥂",
     "hearts": "❤️",
+    "farewell": "👋",
     "general": None  # No icon for general theme
 }
 
@@ -565,6 +566,7 @@ def render_theme_selector() -> str:
         ("confetti", "🎉 Confetti"),
         ("champagne", "🥂 Champagne"),
         ("hearts", "❤️ Hearts"),
+        ("farewell", "👋 Farewell"),
         ("general", "⊞ General (No Icon)")
     ]
 

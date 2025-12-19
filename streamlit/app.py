@@ -1089,6 +1089,14 @@ def examples_tab():
             "to": "Friends and Family",
             "theme": "champagne",
             "message": "We're getting married! Save the date: June 15, 2026. More details to follow!"
+        },
+        {
+            "title": "👋 Farewell to Colleagues",
+            "from": "Alex",
+            "to": "The Team",
+            "theme": "farewell",
+            "message": "It's been an amazing journey working with you all! Thank you for the memories, the laughs, and the lessons. Let's stay in touch!",
+            "visible_message": "Scan to read my farewell note"
         }
     ]
 
@@ -1113,7 +1121,8 @@ def examples_tab():
                 )
                 # Use URL encoding for QR code
                 greeting_url = encode_greeting_to_url(greeting)
-                qr_img = generate_qr_code(greeting_url, theme=example['theme'])
+                visible_msg = example.get('visible_message', None)
+                qr_img = generate_qr_code(greeting_url, theme=example['theme'], visible_message=visible_msg)
                 display_qr_with_protection(qr_img, caption="QR Code", width=None)
 
 

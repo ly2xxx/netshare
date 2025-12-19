@@ -305,23 +305,33 @@ def display_greeting_letter(greeting):
     background_name = greeting.get('background', '')
     
     if background_name:
+        # Check keep/ folder first, then gif/ folder
         keep_path = os.path.join(os.path.dirname(__file__), "keep", background_name)
+        gif_path = os.path.join(os.path.dirname(__file__), "gif", background_name)
+
         if os.path.exists(keep_path):
+            background_path = keep_path
+        elif os.path.exists(gif_path):
+            background_path = gif_path
+        else:
+            background_path = None
+
+        if background_path and os.path.exists(background_path):
             ext = os.path.splitext(background_name)[1].lower()
-            
+
             if ext in ['.mp4', '.webm']:
                 # Video background - embed as base64
-                b64_video = get_img_as_base64(keep_path)
+                b64_video = get_img_as_base64(background_path)
                 mime = "video/mp4" if ext == ".mp4" else "video/webm"
                 background_html = f'<video autoplay loop muted playsinline style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; object-fit: cover; z-index: -1; opacity: 0.3;"><source src="data:{mime};base64,{b64_video}" type="{mime}"></video>'
             elif ext in ['.mp3', '.wav', '.ogg']:
                 # Audio background - embed as base64
-                b64_audio = get_img_as_base64(keep_path)
+                b64_audio = get_img_as_base64(background_path)
                 mime = {".mp3": "audio/mpeg", ".wav": "audio/wav", ".ogg": "audio/ogg"}.get(ext, "audio/mpeg")
                 background_html = f'<audio autoplay loop style="position: absolute; bottom: 10px; left: 10px; z-index: 10; opacity: 0.7; width: 200px;"><source src="data:{mime};base64,{b64_audio}" type="{mime}"></audio>'
             elif ext in ['.png', '.jpg', '.jpeg', '.gif']:
                 # Image background
-                b64_img = get_img_as_base64(keep_path)
+                b64_img = get_img_as_base64(background_path)
                 background_style = f"background-image: url(data:image/{ext[1:]};base64,{b64_img}); background-size: cover; background-position: center;"
 
     # Only add positioning styles if we have a background
@@ -772,6 +782,20 @@ def create_greeting_tab():
                 key="greeting_visible_message"
             )
 
+            # GIF background dropdown
+            available_gifs = get_available_gifs()
+            gif_options = ["(No background animation)"] + available_gifs
+            selected_gif_option = st.selectbox(
+                "Background Animation (Optional)",
+                options=gif_options,
+                index=0,
+                help="Choose a GIF animation to display behind your greeting",
+                key="greeting_gif_background"
+            )
+
+            # Convert selection to background parameter
+            selected_gif = "" if selected_gif_option == "(No background animation)" else selected_gif_option
+
             # Character counter
             if message:
                 st.caption(f"Message length: {len(message)} characters")
@@ -793,7 +817,8 @@ def create_greeting_tab():
                     from_name=from_name,
                     to_name=to_name,
                     message=message,
-                    theme=theme
+                    theme=theme,
+                    background=selected_gif
                 )
 
                 # Encode greeting as URL (for mobile scanning)
@@ -807,6 +832,18 @@ def create_greeting_tab():
 
                 # Display QR code
                 display_qr_with_protection(qr_img, caption=f"Greeting QR Code for {to_name}", width=None)
+
+                # Show GIF preview if one was selected
+                if selected_gif:
+                    st.markdown("---")
+                    st.write("**Background Animation Preview:**")
+                    gif_path = os.path.join(os.path.dirname(__file__), "gif", selected_gif)
+                    if os.path.exists(gif_path):
+                        col_a, col_b, col_c = st.columns([1, 2, 1])
+                        with col_b:
+                            st.image(gif_path, caption=f"Selected: {selected_gif}", use_container_width=True)
+                    else:
+                        st.warning(f"GIF file not found: {selected_gif}")
 
                 # Statistics
                 st.markdown('<div class="stats-box">', unsafe_allow_html=True)
@@ -1032,7 +1069,7 @@ def get_available_backgrounds():
     keep_path = Path(__file__).parent / "keep"
     if not keep_path.exists():
         return []
-    
+
     # Support images and videos
     extensions = {'.png', '.jpg', '.jpeg', '.gif', '.mp4', '.webm'}
     backgrounds = []
@@ -1040,6 +1077,19 @@ def get_available_backgrounds():
         if f.suffix.lower() in extensions:
             backgrounds.append(f.name)
     return sorted(backgrounds)
+
+
+def get_available_gifs():
+    """Get list of available GIF files from gif/ folder"""
+    gif_path = Path(__file__).parent / "gif"
+    if not gif_path.exists():
+        return []
+
+    gifs = []
+    for f in gif_path.iterdir():
+        if f.suffix.lower() == '.gif':
+            gifs.append(f.name)
+    return sorted(gifs)
 
 
 def batch_greeting_tab():

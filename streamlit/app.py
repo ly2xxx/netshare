@@ -814,9 +814,13 @@ def generate_qr_code(data: str, theme: str = "general", visible_message: str = N
                 draw_new.text((bottom_text_x, bottom_text_y), visible_message, fill="black", font=font)
                 
                 # Create rotated text image for left side (rotated 90 degrees counter-clockwise)
-                left_text_img = Image.new('RGBA', (text_width, text_height), (255, 255, 255, 0))
+                # Add extra padding to canvas to prevent text clipping from font metrics
+                canvas_padding = text_height  # Extra space for descenders/ascenders
+                left_canvas_w = text_width + 2 * canvas_padding
+                left_canvas_h = text_height + 2 * canvas_padding
+                left_text_img = Image.new('RGBA', (left_canvas_w, left_canvas_h), (255, 255, 255, 0))
                 left_draw = ImageDraw.Draw(left_text_img)
-                left_draw.text((0, 0), visible_message, fill="black", font=font)
+                left_draw.text((canvas_padding, canvas_padding), visible_message, fill="black", font=font)
                 left_text_rotated = left_text_img.rotate(90, expand=True)
 
                 # Paste left text (centered both horizontally in side margin and vertically in content area)
@@ -825,9 +829,11 @@ def generate_qr_code(data: str, theme: str = "general", visible_message: str = N
                 new_img.paste(left_text_rotated, (left_x, left_y), left_text_rotated)
                 
                 # Create rotated text image for right side (rotated 90 degrees clockwise)
-                right_text_img = Image.new('RGBA', (text_width, text_height), (255, 255, 255, 0))
+                right_canvas_w = text_width + 2 * canvas_padding
+                right_canvas_h = text_height + 2 * canvas_padding
+                right_text_img = Image.new('RGBA', (right_canvas_w, right_canvas_h), (255, 255, 255, 0))
                 right_draw = ImageDraw.Draw(right_text_img)
-                right_draw.text((0, 0), visible_message, fill="black", font=font)
+                right_draw.text((canvas_padding, canvas_padding), visible_message, fill="black", font=font)
                 right_text_rotated = right_text_img.rotate(-90, expand=True)
 
                 # Paste right text (centered both horizontally in side margin and vertically in content area)

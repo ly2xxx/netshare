@@ -1254,14 +1254,14 @@ def get_available_backgrounds():
 
 
 def get_available_gifs():
-    """Get list of available GIF files from gif/ folder"""
+    """Get list of available background files (GIF, JPG) from gif/ folder"""
     gif_path = Path(__file__).parent / "gif"
     if not gif_path.exists():
         return []
 
     gifs = []
     for f in gif_path.iterdir():
-        if f.suffix.lower() == '.gif':
+        if f.suffix.lower() in ['.gif', '.jpg', '.jpeg']:
             gifs.append(f.name)
     return sorted(gifs)
 

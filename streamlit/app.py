@@ -218,6 +218,33 @@ def get_img_as_base64(file_path):
     return base64.b64encode(data).decode()
 
 
+def linkify_urls(text: str) -> str:
+    """
+    Convert URLs in text to clickable HTML links.
+    
+    Args:
+        text: Plain text that may contain URLs
+        
+    Returns:
+        Text with URLs wrapped in <a> tags
+    """
+    import re
+    # Regex pattern for http/https URLs
+    # Matches: http:// or https:// followed by valid URL characters
+    # Captures full URL including domain extensions (.com, .org, etc.)
+    # Trailing punctuation is removed by cleanup code below
+    url_pattern = r'(https?://[^\s<>\'"\)]+)'
+    
+    def replace_url(match):
+        url = match.group(1)
+        # Remove trailing punctuation that might have been captured
+        while url and url[-1] in '.,;:!?)':
+            url = url[:-1]
+        return f'<a href="{url}" target="_blank" rel="noopener noreferrer" style="color: #667eea; text-decoration: underline;">{url}</a>'
+    
+    return re.sub(url_pattern, replace_url, text)
+
+
 def display_qr_with_protection(qr_img: Image.Image, caption: str = "", width: int = None) -> None:
     """
     Display QR code image with right-click protection
@@ -457,7 +484,7 @@ def display_greeting_letter(greeting):
                 <div class="letter-from"><strong>From:</strong> {greeting.get('from', 'Me')}</div>
             </div>
             <div class="letter-body">
-{greeting.get('message', '')}
+{linkify_urls(greeting.get('message', ''))}
             </div>
             {icon_html}
             <div class="letter-footer">
@@ -476,7 +503,7 @@ def display_greeting_letter(greeting):
                 <div class="letter-from"><strong>From:</strong> {greeting.get('from', 'Me')}</div>
             </div>
             <div class="letter-body">
-{greeting.get('message', '')}
+{linkify_urls(greeting.get('message', ''))}
             </div>
             {icon_html}
             <div class="letter-footer">
@@ -713,9 +740,10 @@ def generate_qr_code(data: str, theme: str = "general", visible_message: str = N
             # Formatting
             padding = int(qr_height * 0.05) # 5% of QR height as vertical padding
             if padding < 20: padding = 20
-            
-            # Use tighter padding for the text
-            text_padding = 0  # Reduce spacing between QR and text
+
+            # Add spacing between QR code and text to prevent overlap
+            text_padding = int(qr_height * 0.08)  # 8% of QR height for clear separation
+            if text_padding < 15: text_padding = 15  # Minimum 15px spacing
 
             font = None
             if font_path:
@@ -753,7 +781,7 @@ def generate_qr_code(data: str, theme: str = "general", visible_message: str = N
             # Create new image
             # Width: at least QR width. If text is somehow wider (min size limit), expand.
             final_width = max(qr_width, text_width + int(qr_width * 0.1)) # Ensure margins if text is wider
-            final_height = qr_height + text_height + 2 * padding
+            final_height = qr_height + text_height + 2 * padding + text_padding  # Include text spacing
             
             new_img = Image.new('RGB', (final_width, final_height), 'white')
             

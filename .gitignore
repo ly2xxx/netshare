@@ -23,7 +23,7 @@ wheels/
 *.json
 .claude/
 # Virtual Environment
-.venv/
+.venv*/
 venv/
 *venv/
 env/

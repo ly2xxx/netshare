@@ -200,6 +200,6 @@ Potential features for future versions:
 ---
 
 **Happy Greeting!** 🎄✨
-![alt text](image.png)
+![alt text](image-1.png)
 
 https://www.techspot.com/guides/1676-qr-code-explained/

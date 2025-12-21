@@ -637,12 +637,14 @@ def render_theme_selector() -> str:
     return selected_theme
 
 
-def generate_qr_code(data: str, theme: str = "general", visible_message: str = None, error_correction=qrcode.constants.ERROR_CORRECT_H) -> Image.Image:
+def generate_qr_code(data: str, theme: str = "general", visible_message: str = None, all_sides: bool = False, error_correction=qrcode.constants.ERROR_CORRECT_H) -> Image.Image:
     """
     Generate QR code from data string
 
     Args:
         data: String data to encode
+        visible_message: Optional text to display around the QR code
+        all_sides: If True, display visible_message on all 4 sides (top, bottom, left, right)
         error_correction: QR error correction level
 
     Returns:
@@ -778,26 +780,84 @@ def generate_qr_code(data: str, theme: str = "general", visible_message: str = N
             # Final measurement
             text_width, text_height = get_text_size(visible_message, font)
             
-            # Create new image
-            # Width: at least QR width. If text is somehow wider (min size limit), expand.
-            final_width = max(qr_width, text_width + int(qr_width * 0.1)) # Ensure margins if text is wider
-            final_height = qr_height + text_height + 2 * padding + text_padding  # Include text spacing
-            
-            new_img = Image.new('RGB', (final_width, final_height), 'white')
-            
-            # Paste QR code (centered horizontally)
-            qr_x = (final_width - qr_width) // 2
-            qr_y = padding // 2
-            new_img.paste(pil_img, (qr_x, qr_y))
-            
-            # Draw text (centered horizontally, below QR)
-            draw_new = ImageDraw.Draw(new_img)
-            text_x = (final_width - text_width) // 2
-            text_y = qr_y + qr_height + text_padding
-            
-            draw_new.text((text_x, text_y), visible_message, fill="black", font=font)
-            
-            return new_img
+            if all_sides:
+                # All 4 sides mode: add text on top, bottom, left, and right
+                # Calculate final image size (QR + text on all sides)
+                # Use larger margin for left/right sides to prevent text from touching QR code
+                side_padding = text_height + (text_padding * 3)  # Horizontal space for rotated text
+
+                # For vertical space, we need to fit BOTH the QR code AND the rotated text
+                # Rotated text height = original text_width
+                # Ensure we have enough vertical space for whichever is taller
+                vertical_content_height = max(qr_height, text_width)  # QR or rotated text, whichever is taller
+
+                final_width = qr_width + 2 * side_padding  # Left and right sides
+                final_height = vertical_content_height + 2 * (text_height + text_padding)  # Top and bottom text
+
+                new_img = Image.new('RGB', (final_width, final_height), 'white')
+
+                # Center QR code vertically within the available content area
+                qr_x = side_padding
+                qr_y = text_height + text_padding + (vertical_content_height - qr_height) // 2
+                new_img.paste(pil_img, (qr_x, qr_y))
+                
+                draw_new = ImageDraw.Draw(new_img)
+                
+                # Draw top text (centered horizontally)
+                top_text_x = (final_width - text_width) // 2
+                top_text_y = (text_height + text_padding - text_height) // 2
+                draw_new.text((top_text_x, top_text_y), visible_message, fill="black", font=font)
+                
+                # Draw bottom text (centered horizontally)
+                bottom_text_x = (final_width - text_width) // 2
+                bottom_text_y = text_height + text_padding + vertical_content_height + text_padding // 2
+                draw_new.text((bottom_text_x, bottom_text_y), visible_message, fill="black", font=font)
+                
+                # Create rotated text image for left side (rotated 90 degrees counter-clockwise)
+                left_text_img = Image.new('RGBA', (text_width, text_height), (255, 255, 255, 0))
+                left_draw = ImageDraw.Draw(left_text_img)
+                left_draw.text((0, 0), visible_message, fill="black", font=font)
+                left_text_rotated = left_text_img.rotate(90, expand=True)
+
+                # Paste left text (centered both horizontally in side margin and vertically in content area)
+                left_x = (side_padding - left_text_rotated.width) // 2
+                left_y = text_height + text_padding + (vertical_content_height - left_text_rotated.height) // 2
+                new_img.paste(left_text_rotated, (left_x, left_y), left_text_rotated)
+                
+                # Create rotated text image for right side (rotated 90 degrees clockwise)
+                right_text_img = Image.new('RGBA', (text_width, text_height), (255, 255, 255, 0))
+                right_draw = ImageDraw.Draw(right_text_img)
+                right_draw.text((0, 0), visible_message, fill="black", font=font)
+                right_text_rotated = right_text_img.rotate(-90, expand=True)
+
+                # Paste right text (centered both horizontally in side margin and vertically in content area)
+                right_x = qr_x + qr_width + (side_padding - right_text_rotated.width) // 2
+                right_y = text_height + text_padding + (vertical_content_height - right_text_rotated.height) // 2
+                new_img.paste(right_text_rotated, (right_x, right_y), right_text_rotated)
+                
+                return new_img
+            else:
+                # Bottom only mode (original behavior)
+                # Create new image
+                # Width: at least QR width. If text is somehow wider (min size limit), expand.
+                final_width = max(qr_width, text_width + int(qr_width * 0.1)) # Ensure margins if text is wider
+                final_height = qr_height + text_height + 2 * padding + text_padding  # Include text spacing
+                
+                new_img = Image.new('RGB', (final_width, final_height), 'white')
+                
+                # Paste QR code (centered horizontally)
+                qr_x = (final_width - qr_width) // 2
+                qr_y = padding // 2
+                new_img.paste(pil_img, (qr_x, qr_y))
+                
+                # Draw text (centered horizontally, below QR)
+                draw_new = ImageDraw.Draw(new_img)
+                text_x = (final_width - text_width) // 2
+                text_y = qr_y + qr_height + text_padding
+                
+                draw_new.text((text_x, text_y), visible_message, fill="black", font=font)
+                
+                return new_img
             
         except Exception as e:
             print(f"Warning: Failed to add visible message: {e}")
@@ -862,6 +922,13 @@ def create_greeting_tab():
                 help="Short text to display below the QR code image",
                 key="greeting_visible_message"
             )
+            
+            all_sides = st.checkbox(
+                "Add message to all 4 sides",
+                value=False,
+                help="Display the visible message on top, bottom, left, and right of the QR code",
+                key="greeting_all_sides"
+            )
 
             # GIF background dropdown
             available_gifs = get_available_gifs()
@@ -909,7 +976,7 @@ def create_greeting_tab():
                 stats = get_greeting_stats(greeting_url)
 
                 # Generate QR code with URL data and theme icon
-                qr_img = generate_qr_code(greeting_url, theme=theme, visible_message=visible_message)
+                qr_img = generate_qr_code(greeting_url, theme=theme, visible_message=visible_message, all_sides=all_sides)
 
                 # Display QR code
                 display_qr_with_protection(qr_img, caption=f"Greeting QR Code for {to_name}", width=None)

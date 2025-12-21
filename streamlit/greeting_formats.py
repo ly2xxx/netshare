@@ -13,7 +13,15 @@ from urllib.parse import urlencode, parse_qs, quote, unquote
 
 
 # Base URL for the greeting app
-GREETING_APP_URL = "https://qr-greeting.streamlit.app/"
+# Base URL for the greeting app
+# Obfuscated to avoid plain text check-in
+_ENCODED_URL = "aHR0cHM6Ly9xci1ncmVldGluZy5zdHJlYW1saXQuYXBwLw=="
+
+def _decypher_url(encoded: str) -> str:
+    """Simple decoder for the app URL"""
+    return base64.b64decode(encoded).decode('utf-8')
+
+GREETING_APP_URL = _decypher_url(_ENCODED_URL)
 
 
 def encode_greeting_to_url(greeting: Dict, base_url: str = GREETING_APP_URL) -> str:

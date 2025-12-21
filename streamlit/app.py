@@ -899,6 +899,38 @@ def create_greeting_tab():
 
         st.markdown("---")
 
+        # GIF background dropdown - OUTSIDE form to allow immediate preview
+        available_gifs = get_available_gifs()
+        gif_options = ["(No background animation)"] + available_gifs
+        
+        # Initialize session state for GIF selection if needed
+        if 'selected_gif_option' not in st.session_state:
+             st.session_state.selected_gif_option = gif_options[0]
+
+        selected_gif_option = st.selectbox(
+            "Background Animation (Optional)",
+            options=gif_options,
+            index=gif_options.index(st.session_state.selected_gif_option) if st.session_state.selected_gif_option in gif_options else 0,
+            help="Choose a GIF animation to display behind your greeting",
+            key="greeting_gif_background_interactive"
+        )
+        
+        # Update session state
+        st.session_state.selected_gif_option = selected_gif_option
+
+        # Convert selection to background parameter
+        selected_gif = "" if selected_gif_option == "(No background animation)" else selected_gif_option
+
+        # Immediate preview below the dropdown
+        if selected_gif:
+            gif_path = os.path.join(os.path.dirname(__file__), "gif", selected_gif)
+            if os.path.exists(gif_path):
+                st.image(gif_path, caption=f"Preview: {selected_gif}", use_container_width=True)
+            else:
+                st.warning(f"GIF file not found: {selected_gif}")
+        
+        st.markdown("---")
+
         with st.form("greeting_form"):
             from_name = st.text_input(
                 "From (Your Name)",
@@ -936,19 +968,7 @@ def create_greeting_tab():
                 key="greeting_all_sides"
             )
 
-            # GIF background dropdown
-            available_gifs = get_available_gifs()
-            gif_options = ["(No background animation)"] + available_gifs
-            selected_gif_option = st.selectbox(
-                "Background Animation (Optional)",
-                options=gif_options,
-                index=0,
-                help="Choose a GIF animation to display behind your greeting",
-                key="greeting_gif_background"
-            )
 
-            # Convert selection to background parameter
-            selected_gif = "" if selected_gif_option == "(No background animation)" else selected_gif_option
 
             # Character counter
             if message:
@@ -958,6 +978,9 @@ def create_greeting_tab():
 
     with col2:
         st.subheader("QR Code Preview")
+
+        # Show GIF preview immediately when selected
+
 
         if generate_btn:
             # Debug: Check what values we received
@@ -986,18 +1009,6 @@ def create_greeting_tab():
 
                 # Display QR code
                 display_qr_with_protection(qr_img, caption=f"Greeting QR Code for {to_name}", width=None)
-
-                # Show GIF preview if one was selected
-                if selected_gif:
-                    st.markdown("---")
-                    st.write("**Background Animation Preview:**")
-                    gif_path = os.path.join(os.path.dirname(__file__), "gif", selected_gif)
-                    if os.path.exists(gif_path):
-                        col_a, col_b, col_c = st.columns([1, 2, 1])
-                        with col_b:
-                            st.image(gif_path, caption=f"Selected: {selected_gif}", use_container_width=True)
-                    else:
-                        st.warning(f"GIF file not found: {selected_gif}")
 
                 # Statistics
                 st.markdown('<div class="stats-box">', unsafe_allow_html=True)

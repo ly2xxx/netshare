@@ -17,6 +17,7 @@ from pathlib import Path
 import base64
 import os
 import streamlit.components.v1 as components
+from typing import Optional
 
 # Import cv2 lazily to avoid startup crashes if system libs missing
 try:
@@ -218,6 +219,97 @@ def get_img_as_base64(file_path):
     return base64.b64encode(data).decode()
 
 
+def is_web_url(background_str: str) -> bool:
+    """
+    Check if a background string is a web URL.
+
+    Args:
+        background_str: Background identifier (filename or URL)
+
+    Returns:
+        True if the string is a web URL, False otherwise
+    """
+    if not background_str:
+        return False
+    background_lower = background_str.lower()
+    return background_lower.startswith(('http://', 'https://')) or \
+           'youtu.be' in background_lower or \
+           'youtube.com' in background_lower
+
+
+def classify_background(background_str: str) -> str:
+    """
+    Classify background type based on URL pattern.
+
+    Args:
+        background_str: Background identifier (filename or URL)
+
+    Returns:
+        One of: 'local_file', 'youtube', 'direct_video', 'other_url', or 'invalid'
+    """
+    if not background_str:
+        return 'invalid'
+
+    if not is_web_url(background_str):
+        return 'local_file'
+
+    background_lower = background_str.lower()
+
+    # Check for YouTube URLs
+    if 'youtube.com' in background_lower or 'youtu.be' in background_lower:
+        return 'youtube'
+
+    # Check for direct video URLs (by extension)
+    if any(background_lower.endswith(ext) for ext in ['.mp4', '.webm', '.mov', '.avi', '.m3u8']):
+        return 'direct_video'
+
+    # Check if it's a generic URL
+    if background_lower.startswith(('http://', 'https://')):
+        return 'other_url'
+
+    return 'invalid'
+
+
+def convert_youtube_to_embed_url(youtube_url: str) -> Optional[str]:
+    """
+    Convert various YouTube URL formats to embeddable iframe URL.
+
+    Handles:
+    - https://www.youtube.com/watch?v=VIDEO_ID
+    - https://youtu.be/VIDEO_ID
+    - https://www.youtube.com/embed/VIDEO_ID
+    - youtu.be/VIDEO_ID (without protocol)
+
+    Args:
+        youtube_url: YouTube URL in any supported format
+
+    Returns:
+        Embed URL in format https://www.youtube.com/embed/VIDEO_ID, or None if invalid
+    """
+    import re
+
+    if not youtube_url:
+        return None
+
+    # YouTube video ID pattern: 11 characters (alphanumeric, hyphens, underscores)
+    video_id_pattern = r'[a-zA-Z0-9_-]{11}'
+
+    # Try different URL patterns
+    patterns = [
+        r'youtube\.com/watch\?v=([a-zA-Z0-9_-]{11})',  # youtube.com/watch?v=ID
+        r'youtu\.be/([a-zA-Z0-9_-]{11})',              # youtu.be/ID
+        r'youtube\.com/embed/([a-zA-Z0-9_-]{11})',     # youtube.com/embed/ID
+    ]
+
+    for pattern in patterns:
+        match = re.search(pattern, youtube_url)
+        if match:
+            video_id = match.group(1)
+            return f"https://www.youtube.com/embed/{video_id}"
+
+    return None
+
+
 def linkify_urls(text: str) -> str:
     """
     Convert URLs in text to clickable HTML links.
@@ -331,36 +423,59 @@ def display_greeting_letter(greeting):
     background_html = ""
     background_style = ""
     background_name = greeting.get('background', '')
-    
+
     if background_name:
-        # Check keep/ folder first, then gif/ folder
-        keep_path = os.path.join(os.path.dirname(__file__), "keep", background_name)
-        gif_path = os.path.join(os.path.dirname(__file__), "gif", background_name)
+        # Check if background is a web URL
+        if is_web_url(background_name):
+            bg_type = classify_background(background_name)
 
-        if os.path.exists(keep_path):
-            background_path = keep_path
-        elif os.path.exists(gif_path):
-            background_path = gif_path
+            if bg_type == 'youtube':
+                # YouTube embed iframe
+                embed_url = convert_youtube_to_embed_url(background_name)
+                if embed_url:
+                    # Extract video ID for playlist parameter (required for loop)
+                    video_id = embed_url.split('/')[-1]
+                    background_html = f'''<iframe
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; z-index: -1; opacity: 0.7;"
+                        src="{embed_url}?autoplay=1&mute=1&loop=1&playlist={video_id}"
+                        allow="autoplay; encrypted-media"
+                        allowfullscreen
+                    ></iframe>'''
+            elif bg_type == 'direct_video':
+                # Direct HTML5 video from URL
+                background_html = f'''<video autoplay loop muted playsinline
+                    style="position: absolute; top: 50%; left: 50%; min-width: 100%; min-height: 100%; width: auto; height: auto; transform: translate(-50%, -50%); object-fit: cover; z-index: -1; opacity: 0.7;">
+                    <source src="{background_name}" type="video/mp4">
+                </video>'''
         else:
-            background_path = None
+            # Local file - Check keep/ folder first, then gif/ folder
+            keep_path = os.path.join(os.path.dirname(__file__), "keep", background_name)
+            gif_path = os.path.join(os.path.dirname(__file__), "gif", background_name)
 
-        if background_path and os.path.exists(background_path):
-            ext = os.path.splitext(background_name)[1].lower()
+            if os.path.exists(keep_path):
+                background_path = keep_path
+            elif os.path.exists(gif_path):
+                background_path = gif_path
+            else:
+                background_path = None
 
-            if ext in ['.mp4', '.webm']:
-                # Video background - embed as base64
-                b64_video = get_img_as_base64(background_path)
-                mime = "video/mp4" if ext == ".mp4" else "video/webm"
-                background_html = f'<video autoplay loop muted playsinline style="position: absolute; top: 50%; left: 50%; min-width: 100%; min-height: 100%; width: auto; height: auto; transform: translate(-50%, -50%); object-fit: cover; z-index: -1; opacity: 0.7;"><source src="data:{mime};base64,{b64_video}" type="{mime}"></video>'
-            elif ext in ['.mp3', '.wav', '.ogg']:
-                # Audio background - embed as base64
-                b64_audio = get_img_as_base64(background_path)
-                mime = {".mp3": "audio/mpeg", ".wav": "audio/wav", ".ogg": "audio/ogg"}.get(ext, "audio/mpeg")
-                background_html = f'<audio autoplay loop style="position: absolute; bottom: 10px; left: 10px; z-index: 10; opacity: 0.7; width: 200px;"><source src="data:{mime};base64,{b64_audio}" type="{mime}"></audio>'
-            elif ext in ['.png', '.jpg', '.jpeg', '.gif']:
-                # Image background
-                b64_img = get_img_as_base64(background_path)
-                background_style = f"background-image: url(data:image/{ext[1:]};base64,{b64_img}); background-size: cover; background-position: center;"
+            if background_path and os.path.exists(background_path):
+                ext = os.path.splitext(background_name)[1].lower()
+
+                if ext in ['.mp4', '.webm']:
+                    # Video background - embed as base64
+                    b64_video = get_img_as_base64(background_path)
+                    mime = "video/mp4" if ext == ".mp4" else "video/webm"
+                    background_html = f'<video autoplay loop muted playsinline style="position: absolute; top: 50%; left: 50%; min-width: 100%; min-height: 100%; width: auto; height: auto; transform: translate(-50%, -50%); object-fit: cover; z-index: -1; opacity: 0.7;"><source src="data:{mime};base64,{b64_video}" type="{mime}"></video>'
+                elif ext in ['.mp3', '.wav', '.ogg']:
+                    # Audio background - embed as base64
+                    b64_audio = get_img_as_base64(background_path)
+                    mime = {".mp3": "audio/mpeg", ".wav": "audio/wav", ".ogg": "audio/ogg"}.get(ext, "audio/mpeg")
+                    background_html = f'<audio autoplay loop style="position: absolute; bottom: 10px; left: 10px; z-index: 10; opacity: 0.7; width: 200px;"><source src="data:{mime};base64,{b64_audio}" type="{mime}"></audio>'
+                elif ext in ['.png', '.jpg', '.jpeg', '.gif']:
+                    # Image background
+                    b64_img = get_img_as_base64(background_path)
+                    background_style = f"background-image: url(data:image/{ext[1:]};base64,{b64_img}); background-size: cover; background-position: center;"
 
     # Only add positioning styles if we have a background
     additional_style = ""
@@ -1270,8 +1385,9 @@ def batch_greeting_tab():
     """Tab for batch QR code generation from Excel"""
     st.markdown('<div class="main-header"><h1>📦 Batch QR Code Generation</h1></div>',
                 unsafe_allow_html=True)
-    
+
     st.write("Generate multiple QR codes at once by uploading an Excel spreadsheet.")
+    st.info("💡 **New Feature**: You can now use YouTube URLs or direct video URLs as backgrounds! Just paste the URL in the Background column.")
     
     # Available themes and backgrounds for reference
     available_themes = list(THEME_ICONS.keys())
@@ -1294,7 +1410,7 @@ def batch_greeting_tab():
             "To": ["Bob", "Alice", "Dana", "Eve"],
             "Message": ["Merry Christmas!", "Happy New Year!", "Season's Greetings!", "Enjoy the holidays!"],
             "Theme": ["snowflake", "fireworks", "hearts", "lights"],
-            "Background": ["letter-background-design-01.jpg", "letter-background-design-02.jpg", "letter-background-design-03.jpg", "christmas-lights.gif"],
+            "Background": ["letter-background-design-01.jpg", "letter-background-design-02.jpg", "https://youtu.be/6SuLXoRmykE", "christmas-lights.gif"],
             "VisibleMessage": ["Scan me!", "BOB", "Happy Holidays!", "Ho Ho Ho!"]
         }
         df_template = pd.DataFrame(sample_data)
@@ -1305,15 +1421,24 @@ def batch_greeting_tab():
             df_template.to_excel(writer, index=False, sheet_name='Greetings')
             
             # Add a reference sheet with valid options
+            # Include local backgrounds and web URL examples
+            background_examples = available_backgrounds + [
+                "",
+                "# Web URLs are also supported:",
+                "youtu.be/6SuLXoRmykE",
+                "https://www.youtube.com/watch?v=VIDEO_ID",
+                "https://example.com/video.mp4"
+            ]
+
             ref_data = {
-                "Valid Themes": available_themes + [""] * (max(0, len(available_backgrounds) - len(available_themes))),
-                "Valid Backgrounds": available_backgrounds + [""] * (max(0, len(available_themes) - len(available_backgrounds)))
+                "Valid Themes": available_themes + [""] * (max(0, len(background_examples) - len(available_themes))),
+                "Valid Backgrounds": background_examples + [""] * (max(0, len(available_themes) - len(background_examples)))
             }
             # Pad to same length
-            max_len = max(len(available_themes), len(available_backgrounds))
+            max_len = max(len(available_themes), len(background_examples))
             ref_data["Valid Themes"] = (available_themes + [""] * max_len)[:max_len]
-            ref_data["Valid Backgrounds"] = (available_backgrounds + [""] * max_len)[:max_len]
-            
+            ref_data["Valid Backgrounds"] = (background_examples + [""] * max_len)[:max_len]
+
             df_ref = pd.DataFrame(ref_data)
             df_ref.to_excel(writer, index=False, sheet_name='Valid Options')
         
@@ -1336,11 +1461,17 @@ def batch_greeting_tab():
                     st.write(f"- `{theme}` {emoji if emoji else ''}")
             with col2:
                 st.write("**Valid Backgrounds:**")
+                st.write("*Local files from `keep/` folder:*")
                 if available_backgrounds:
                     for bg in available_backgrounds:
                         st.write(f"- `{bg}`")
                 else:
                     st.write("No backgrounds available in `keep/` folder")
+                st.write("")
+                st.write("*Or use web video URLs:*")
+                st.write("- YouTube: `youtu.be/VIDEO_ID`")
+                st.write("- YouTube: `https://www.youtube.com/watch?v=VIDEO_ID`")
+                st.write("- Direct video: `https://example.com/video.mp4`")
         
     except ImportError:
         st.error("pandas and openpyxl are required for batch processing. Please install them: `pip install pandas openpyxl`")
@@ -1402,10 +1533,28 @@ def batch_greeting_tab():
                         # Validate theme
                         if theme not in available_themes:
                             theme = "general"
-                        
-                        # Validate background
-                        if background and background not in available_backgrounds:
-                            background = ""
+
+                        # Validate background (local file or web URL)
+                        if background:
+                            if is_web_url(background):
+                                # Validate web URL format
+                                bg_type = classify_background(background)
+                                if bg_type == 'youtube':
+                                    # Validate YouTube URL can be converted to embed format
+                                    if convert_youtube_to_embed_url(background) is None:
+                                        st.warning(f"Row {idx + 1}: Invalid YouTube URL '{background}' - skipping background")
+                                        background = ""
+                                elif bg_type == 'direct_video':
+                                    # Direct video URLs are accepted as-is
+                                    # Note: CORS and accessibility depend on the video host
+                                    pass
+                                else:
+                                    # Other URL types not supported
+                                    st.warning(f"Row {idx + 1}: Unsupported URL type '{background}' - skipping background")
+                                    background = ""
+                            elif background not in available_backgrounds:
+                                # Local file not found
+                                background = ""
                         
                         status.text(f"Generating QR {idx + 1}/{len(df)}: {to_name}...")
                         

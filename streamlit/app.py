@@ -255,6 +255,10 @@ def classify_background(background_str: str) -> str:
 
     background_lower = background_str.lower()
 
+    # Check for Google Drive URLs
+    if 'drive.google.com' in background_lower and '/file/d/' in background_lower:
+        return 'google_drive'
+
     # Check for YouTube URLs
     if 'youtube.com' in background_lower or 'youtu.be' in background_lower:
         return 'youtube'
@@ -306,6 +310,32 @@ def convert_youtube_to_embed_url(youtube_url: str) -> Optional[str]:
         if match:
             video_id = match.group(1)
             return f"https://www.youtube.com/embed/{video_id}"
+
+    return None
+
+
+def convert_google_drive_to_embed_url(drive_url: str) -> Optional[str]:
+    """
+    Convert Google Drive share URL to embeddable preview URL.
+
+    Input format: https://drive.google.com/file/d/{FILE_ID}/view?usp=sharing
+    Output format: https://drive.google.com/file/d/{FILE_ID}/preview
+
+    Args:
+        drive_url: Google Drive share URL
+
+    Returns:
+        Embed URL or None if FILE_ID cannot be extracted
+    """
+    import re
+
+    # Pattern to extract FILE_ID from Google Drive URL
+    # Matches: /file/d/{FILE_ID}/ where FILE_ID is alphanumeric with hyphens/underscores
+    match = re.search(r'/file/d/([a-zA-Z0-9-_]+)', drive_url)
+
+    if match:
+        file_id = match.group(1)
+        return f"https://drive.google.com/file/d/{file_id}/preview"
 
     return None
 
@@ -440,6 +470,16 @@ def display_greeting_letter(greeting):
                         src="{embed_url}?autoplay=1&mute=1&loop=1&playlist={video_id}"
                         allow="autoplay; encrypted-media"
                         allowfullscreen
+                    ></iframe>'''
+            elif bg_type == 'google_drive':
+                # Google Drive embed iframe
+                embed_url = convert_google_drive_to_embed_url(background_name)
+                if embed_url:
+                    background_html = f'''<iframe
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; z-index: -1; opacity: 0.7;"
+                        src="{embed_url}"
+                        allowfullscreen
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     ></iframe>'''
             elif bg_type == 'direct_video':
                 # Direct HTML5 video from URL
@@ -784,8 +824,8 @@ def generate_qr_code(data: str, theme: str = "general", visible_message: str = N
     if theme in THEME_ICONS and THEME_ICONS[theme]:
         qr_width, qr_height = pil_img.size
 
-        # Icon should be ~20-25% of QR code size (safe margin under 30%)
-        icon_size = int(min(qr_width, qr_height) * 0.22)
+        # Icon should be ~15% of QR code size for reliable scanning (safe margin under 20%)
+        icon_size = int(min(qr_width, qr_height) * 0.15)
 
         try:
             # Load icon from file
@@ -1049,8 +1089,8 @@ def create_greeting_tab():
             custom_url = st.text_input(
                 "Video URL",
                 value=st.session_state.custom_video_url,
-                placeholder="https://youtu.be/... or https://example.com/video.mp4",
-                help="Paste a YouTube URL or direct video link (.mp4, .webm, .mov, .avi, .m3u8)",
+                placeholder="https://youtu.be/..., https://drive.google.com/file/d/.../view or https://example.com/video.mp4",
+                help="Paste a YouTube URL, Google Drive shared video, or direct video link (.mp4, .webm, .mov, .avi, .m3u8)",
                 key="custom_video_url_input",
                 on_change=validate_custom_url_callback
             )
@@ -1540,6 +1580,15 @@ def validate_custom_url_callback():
             st.session_state.custom_url_validation_status = 'invalid'
             st.session_state.custom_url_validation_message = "⚠️ Invalid YouTube URL. Could not extract video ID."
 
+    elif bg_type == 'google_drive':
+        embed_url = convert_google_drive_to_embed_url(url)
+        if embed_url:
+            st.session_state.custom_url_validation_status = 'valid'
+            st.session_state.custom_url_validation_message = "✅ Valid Google Drive URL"
+        else:
+            st.session_state.custom_url_validation_status = 'invalid'
+            st.session_state.custom_url_validation_message = "⚠️ Invalid Google Drive URL. Could not extract file ID."
+
     elif bg_type == 'direct_video':
         st.session_state.custom_url_validation_status = 'valid'
         file_ext = url.split('.')[-1].upper()
@@ -1729,6 +1778,11 @@ def batch_greeting_tab():
                                     # Validate YouTube URL can be converted to embed format
                                     if convert_youtube_to_embed_url(background) is None:
                                         st.warning(f"Row {idx + 1}: Invalid YouTube URL '{background}' - skipping background")
+                                        background = ""
+                                elif bg_type == 'google_drive':
+                                    # Validate Google Drive URL can be converted to embed format
+                                    if convert_google_drive_to_embed_url(background) is None:
+                                        st.warning(f"Row {idx + 1}: Invalid Google Drive URL '{background}' - skipping background")
                                         background = ""
                                 elif bg_type == 'direct_video':
                                     # Direct video URLs are accepted as-is

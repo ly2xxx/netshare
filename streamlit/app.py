@@ -1645,7 +1645,7 @@ def batch_greeting_tab():
             "To": ["Bob", "Alice", "Dana", "Eve"],
             "Message": ["Merry Christmas!", "Happy New Year!", "Season's Greetings!\nhttps://qr-greeting.co.uk", "Enjoy the holidays!"],
             "Theme": ["snowflake", "fireworks", "hearts", "lights"],
-            "Background": ["letter-background-design-01.jpg", "letter-background-design-02.jpg", "https://youtu.be/6SuLXoRmykE", "christmas-lights.gif"],
+            "Background": ["letter-background-design-01.jpg", "http://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4", "https://youtu.be/6SuLXoRmykE", "christmas-lights.gif"],
             "VisibleMessage": ["Scan me!", "BOB", "Happy Holidays!", "Ho Ho Ho!"]
         }
         df_template = pd.DataFrame(sample_data)

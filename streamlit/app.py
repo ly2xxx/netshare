@@ -515,6 +515,8 @@ def display_greeting_letter(greeting):
             width: 100%;
             height: auto;
             position: relative;
+            z-index: 0;  /* Establish stacking context so video (z-index: -1) stays visible */
+            isolation: isolate;
             font-family: 'Georgia', serif;
             color: #333;
             margin-top: 20px;
@@ -1408,7 +1410,7 @@ def batch_greeting_tab():
         sample_data = {
             "From": ["Alice", "Bob", "Charlie", "David"],
             "To": ["Bob", "Alice", "Dana", "Eve"],
-            "Message": ["Merry Christmas!", "Happy New Year!", "Season's Greetings!", "Enjoy the holidays!"],
+            "Message": ["Merry Christmas!", "Happy New Year!", "Season's Greetings!\nhttps://qr-greeting.com", "Enjoy the holidays!"],
             "Theme": ["snowflake", "fireworks", "hearts", "lights"],
             "Background": ["letter-background-design-01.jpg", "letter-background-design-02.jpg", "https://youtu.be/6SuLXoRmykE", "christmas-lights.gif"],
             "VisibleMessage": ["Scan me!", "BOB", "Happy Holidays!", "Ho Ho Ho!"]

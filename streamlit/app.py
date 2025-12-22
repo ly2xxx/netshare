@@ -1018,11 +1018,20 @@ def create_greeting_tab():
 
         # GIF background dropdown - OUTSIDE form to allow immediate preview
         available_gifs = get_available_gifs()
-        gif_options = ["(No background animation)"] + available_gifs
+        gif_options = ["(No background animation)", "(Enter custom URL...)"] + available_gifs
         
         # Initialize session state for GIF selection if needed
         if 'selected_gif_option' not in st.session_state:
              st.session_state.selected_gif_option = gif_options[0]
+
+        if 'custom_video_url' not in st.session_state:
+            st.session_state.custom_video_url = ""
+
+        if 'custom_url_validation_status' not in st.session_state:
+            st.session_state.custom_url_validation_status = None  # None, 'valid', 'invalid'
+
+        if 'custom_url_validation_message' not in st.session_state:
+            st.session_state.custom_url_validation_message = ""
 
         selected_gif_option = st.selectbox(
             "Background Animation (Optional)",
@@ -1035,11 +1044,43 @@ def create_greeting_tab():
         # Update session state
         st.session_state.selected_gif_option = selected_gif_option
 
-        # Convert selection to background parameter
-        selected_gif = "" if selected_gif_option == "(No background animation)" else selected_gif_option
+        # Show custom URL input when "(Enter custom URL...)" is selected
+        if selected_gif_option == "(Enter custom URL...)":
+            custom_url = st.text_input(
+                "Video URL",
+                value=st.session_state.custom_video_url,
+                placeholder="https://youtu.be/... or https://example.com/video.mp4",
+                help="Paste a YouTube URL or direct video link (.mp4, .webm, .mov, .avi, .m3u8)",
+                key="custom_video_url_input",
+                on_change=validate_custom_url_callback
+            )
+            st.session_state.custom_video_url = custom_url
 
-        # Immediate preview below the dropdown
-        if selected_gif:
+            # Display validation status
+            if st.session_state.custom_url_validation_status == 'valid':
+                st.success(st.session_state.custom_url_validation_message)
+            elif st.session_state.custom_url_validation_status == 'invalid':
+                st.warning(st.session_state.custom_url_validation_message)
+            elif st.session_state.custom_video_url:
+                st.info("ℹ️ Validating URL...")
+            else:
+                st.info("ℹ️ Enter a video URL above to enable background animation")
+
+        # Convert selection to background parameter
+        if selected_gif_option == "(No background animation)":
+            selected_gif = ""
+        elif selected_gif_option == "(Enter custom URL...)":
+            # Use custom URL if validated, otherwise empty
+            if st.session_state.custom_url_validation_status == 'valid':
+                selected_gif = st.session_state.custom_video_url
+            else:
+                selected_gif = ""
+        else:
+            # Local file selected
+            selected_gif = selected_gif_option
+
+        # Immediate preview below the dropdown (only for local files)
+        if selected_gif and selected_gif_option != "(Enter custom URL...)":
             gif_path = os.path.join(os.path.dirname(__file__), "gif", selected_gif)
             if os.path.exists(gif_path):
                 st.image(gif_path, caption=f"Preview: {selected_gif}", use_container_width=True)
@@ -1105,8 +1146,112 @@ def create_greeting_tab():
 
             if not from_name or not to_name or not message:
                 st.error("Please fill in all required fields (From, To, and Message)")
+            elif selected_gif_option == "(Enter custom URL...)":
+                # Validate custom URL before generation
+                if not st.session_state.custom_video_url:
+                    st.warning("⚠️ No video URL entered. Generating QR code without background animation.")
+                    # Continue with selected_gif = "" (already set)
+                    greeting = create_holiday_greeting(
+                        from_name=from_name,
+                        to_name=to_name,
+                        message=message,
+                        theme=theme,
+                        background=selected_gif
+                    )
+
+                    # Encode greeting as URL (for mobile scanning)
+                    greeting_url = encode_greeting_to_url(greeting)
+
+                    # Get statistics based on URL length
+                    stats = get_greeting_stats(greeting_url)
+
+                    # Generate QR code with URL data and theme icon
+                    qr_img = generate_qr_code(greeting_url, theme=theme, visible_message=visible_message, all_sides=all_sides)
+
+                    # Display QR code
+                    display_qr_with_protection(qr_img, caption=f"Greeting QR Code for {to_name}", width=None)
+
+                    # Statistics
+                    st.markdown('<div class="stats-box">', unsafe_allow_html=True)
+                    st.write("**QR Code Statistics:**")
+                    st.write(f"- Data size: {stats['byte_size']} bytes")
+                    st.write(f"- QR Version: ~{stats['recommended_qr_version']}")
+                    st.write(f"- Scannable: {'✅ Yes' if stats['fits_in_qr'] else '❌ Too large'}")
+                    st.caption("📱 Scan with phone camera to open greeting directly!")
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+                    # Download button
+                    buf = io.BytesIO()
+                    qr_img.save(buf, format='PNG')
+                    byte_im = buf.getvalue()
+
+                    # Generate filename first for consistency
+                    filename = f"greeting_{to_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+
+                    # Download button with tracking callback
+                    st.download_button(
+                        label="📥 Download QR Code",
+                        data=byte_im,
+                        file_name=filename,
+                        mime="image/png",
+                        width='stretch',
+                        on_click=log_download,
+                        args=(filename,)
+                    )
+                elif st.session_state.custom_url_validation_status != 'valid':
+                    st.error(f"❌ Invalid video URL: {st.session_state.custom_url_validation_message}")
+                    st.info("💡 Please enter a valid YouTube or video URL, or select a different background option.")
+                else:
+                    # Valid URL - proceed
+                    greeting = create_holiday_greeting(
+                        from_name=from_name,
+                        to_name=to_name,
+                        message=message,
+                        theme=theme,
+                        background=selected_gif
+                    )
+
+                    # Encode greeting as URL (for mobile scanning)
+                    greeting_url = encode_greeting_to_url(greeting)
+
+                    # Get statistics based on URL length
+                    stats = get_greeting_stats(greeting_url)
+
+                    # Generate QR code with URL data and theme icon
+                    qr_img = generate_qr_code(greeting_url, theme=theme, visible_message=visible_message, all_sides=all_sides)
+
+                    # Display QR code
+                    display_qr_with_protection(qr_img, caption=f"Greeting QR Code for {to_name}", width=None)
+
+                    # Statistics
+                    st.markdown('<div class="stats-box">', unsafe_allow_html=True)
+                    st.write("**QR Code Statistics:**")
+                    st.write(f"- Data size: {stats['byte_size']} bytes")
+                    st.write(f"- QR Version: ~{stats['recommended_qr_version']}")
+                    st.write(f"- Scannable: {'✅ Yes' if stats['fits_in_qr'] else '❌ Too large'}")
+                    st.caption("📱 Scan with phone camera to open greeting directly!")
+                    st.markdown('</div>', unsafe_allow_html=True)
+
+                    # Download button
+                    buf = io.BytesIO()
+                    qr_img.save(buf, format='PNG')
+                    byte_im = buf.getvalue()
+
+                    # Generate filename first for consistency
+                    filename = f"greeting_{to_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+
+                    # Download button with tracking callback
+                    st.download_button(
+                        label="📥 Download QR Code",
+                        data=byte_im,
+                        file_name=filename,
+                        mime="image/png",
+                        width='stretch',
+                        on_click=log_download,
+                        args=(filename,)
+                    )
             else:
-                # Create greeting payload
+                # Normal flow (local file or no background)
                 greeting = create_holiday_greeting(
                     from_name=from_name,
                     to_name=to_name,
@@ -1370,6 +1515,45 @@ def get_available_backgrounds():
     return sorted(backgrounds)
 
 
+def validate_custom_url_callback():
+    """Validate custom video URL when user types"""
+    url = st.session_state.get('custom_video_url_input', '').strip()
+
+    if not url:
+        st.session_state.custom_url_validation_status = None
+        st.session_state.custom_url_validation_message = ""
+        return
+
+    if not is_web_url(url):
+        st.session_state.custom_url_validation_status = 'invalid'
+        st.session_state.custom_url_validation_message = "⚠️ Invalid URL format. Must start with http:// or https://"
+        return
+
+    bg_type = classify_background(url)
+
+    if bg_type == 'youtube':
+        embed_url = convert_youtube_to_embed_url(url)
+        if embed_url:
+            st.session_state.custom_url_validation_status = 'valid'
+            st.session_state.custom_url_validation_message = "✅ Valid YouTube URL"
+        else:
+            st.session_state.custom_url_validation_status = 'invalid'
+            st.session_state.custom_url_validation_message = "⚠️ Invalid YouTube URL. Could not extract video ID."
+
+    elif bg_type == 'direct_video':
+        st.session_state.custom_url_validation_status = 'valid'
+        file_ext = url.split('.')[-1].upper()
+        st.session_state.custom_url_validation_message = f"✅ Valid video URL ({file_ext})"
+
+    elif bg_type == 'other_url':
+        st.session_state.custom_url_validation_status = 'invalid'
+        st.session_state.custom_url_validation_message = "⚠️ Unsupported URL type. Use YouTube or direct video links (.mp4, .webm, .mov, .avi, .m3u8)"
+
+    else:
+        st.session_state.custom_url_validation_status = 'invalid'
+        st.session_state.custom_url_validation_message = "⚠️ Could not validate URL format"
+
+
 def get_available_gifs():
     """Get list of available background files (GIF, JPG) from gif/ folder"""
     gif_path = Path(__file__).parent / "gif"
@@ -1410,7 +1594,7 @@ def batch_greeting_tab():
         sample_data = {
             "From": ["Alice", "Bob", "Charlie", "David"],
             "To": ["Bob", "Alice", "Dana", "Eve"],
-            "Message": ["Merry Christmas!", "Happy New Year!", "Season's Greetings!\nhttps://qr-greeting.com", "Enjoy the holidays!"],
+            "Message": ["Merry Christmas!", "Happy New Year!", "Season's Greetings!\nhttps://qr-greeting.co.uk", "Enjoy the holidays!"],
             "Theme": ["snowflake", "fireworks", "hearts", "lights"],
             "Background": ["letter-background-design-01.jpg", "letter-background-design-02.jpg", "https://youtu.be/6SuLXoRmykE", "christmas-lights.gif"],
             "VisibleMessage": ["Scan me!", "BOB", "Happy Holidays!", "Ho Ho Ho!"]

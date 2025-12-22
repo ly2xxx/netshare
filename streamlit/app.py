@@ -1036,7 +1036,7 @@ def create_greeting_tab():
     if os.path.exists(banner_path):
         col1, col2 = st.columns([3, 2])
         with col1:
-            st.image(banner_path, use_container_width=True)
+            st.image(banner_path, width='stretch')
     else:
         # Fallback to text header if banner not found
         st.markdown('<div class="main-header"><h1>🎄 Create Holiday Greeting QR Code</h1></div>',
@@ -1123,7 +1123,7 @@ def create_greeting_tab():
         if selected_gif and selected_gif_option != "(Enter custom URL...)":
             gif_path = os.path.join(os.path.dirname(__file__), "gif", selected_gif)
             if os.path.exists(gif_path):
-                st.image(gif_path, caption=f"Preview: {selected_gif}", use_container_width=True)
+                st.image(gif_path, caption=f"Preview: {selected_gif}", width='stretch')
             else:
                 st.warning(f"GIF file not found: {selected_gif}")
         

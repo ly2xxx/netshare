@@ -1650,40 +1650,14 @@ def batch_greeting_tab():
         }
         df_template = pd.DataFrame(sample_data)
         
-        # Save to BytesIO
-        output = BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df_template.to_excel(writer, index=False, sheet_name='Greetings')
-            
-            # Add a reference sheet with valid options
-            # Include local backgrounds and web URL examples
-            background_examples = available_backgrounds + [
-                "",
-                "# Web URLs are also supported:",
-                "youtu.be/6SuLXoRmykE",
-                "https://www.youtube.com/watch?v=VIDEO_ID",
-                "https://example.com/video.mp4"
-            ]
-
-            ref_data = {
-                "Valid Themes": available_themes + [""] * (max(0, len(background_examples) - len(available_themes))),
-                "Valid Backgrounds": background_examples + [""] * (max(0, len(available_themes) - len(background_examples)))
-            }
-            # Pad to same length
-            max_len = max(len(available_themes), len(background_examples))
-            ref_data["Valid Themes"] = (available_themes + [""] * max_len)[:max_len]
-            ref_data["Valid Backgrounds"] = (background_examples + [""] * max_len)[:max_len]
-
-            df_ref = pd.DataFrame(ref_data)
-            df_ref.to_excel(writer, index=False, sheet_name='Valid Options')
-        
-        excel_bytes = output.getvalue()
+        # Save to CSV
+        csv_data = df_template.to_csv(index=False).encode('utf-8')
         
         st.download_button(
-            label="📥 Download Template (.xlsx)",
-            data=excel_bytes,
-            file_name="qr_greeting_template.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            label="📥 Download Template (.csv)",
+            data=csv_data,
+            file_name="qr_greeting_template.csv",
+            mime="text/csv"
         )
         
         # Show valid options for reference
@@ -1709,7 +1683,7 @@ def batch_greeting_tab():
                 st.write("- Direct video: `https://example.com/video.mp4`")
         
     except ImportError:
-        st.error("pandas and openpyxl are required for batch processing. Please install them: `pip install pandas openpyxl`")
+        st.error("pandas is required for batch processing. Please install it: `pip install pandas`")
         return
     
     st.markdown("---")
@@ -1718,20 +1692,20 @@ def batch_greeting_tab():
     st.subheader("2. Upload Filled Template")
     
     uploaded_file = st.file_uploader(
-        "Choose your filled Excel file",
-        type=['xlsx', 'xls'],
+        "Choose your filled CSV file",
+        type=['csv'],
         help="Upload the template with your greeting data"
     )
     
     if uploaded_file is not None:
         try:
-            df = pd.read_excel(uploaded_file, sheet_name='Greetings')
+            df = pd.read_csv(uploaded_file)
             
-            st.success(f"Loaded {len(df)} greetings from Excel!")
+            st.success(f"Loaded {len(df)} greetings from CSV!")
             
             # Preview data
             with st.expander("Preview Data"):
-                st.dataframe(df)
+                st.data_editor(df)
             
             # Validate data
             required_cols = ["From", "To", "Message"]

@@ -1616,6 +1616,23 @@ def get_available_gifs():
     return sorted(gifs)
 
 
+def get_all_available_backgrounds():
+    """Get combined list of backgrounds from both keep/ and gif/ folders"""
+    backgrounds_from_keep = get_available_backgrounds()
+    backgrounds_from_gif = get_available_gifs()
+
+    # Create a dictionary to track folder source for each file
+    # This helps with file resolution later
+    background_map = {}
+    for bg in backgrounds_from_keep:
+        background_map[bg] = 'keep'
+    for bg in backgrounds_from_gif:
+        if bg not in background_map:  # Avoid duplicates, keep/ takes priority
+            background_map[bg] = 'gif'
+
+    return sorted(background_map.keys()), background_map
+
+
 def batch_greeting_tab():
     """Tab for batch QR code generation from Excel"""
 
@@ -1631,7 +1648,9 @@ def batch_greeting_tab():
     
     # Available themes and backgrounds for reference
     available_themes = list(THEME_ICONS.keys())
-    available_backgrounds = get_available_backgrounds()
+    all_backgrounds, background_folder_map = get_all_available_backgrounds()
+    available_backgrounds_keep = get_available_backgrounds()
+    available_backgrounds_gif = get_available_gifs()
     
     st.markdown("---")
     
@@ -1676,11 +1695,18 @@ def batch_greeting_tab():
             with col2:
                 st.write("**Valid Backgrounds:**")
                 st.write("*Local files from `keep/` folder:*")
-                if available_backgrounds:
-                    for bg in available_backgrounds:
+                if available_backgrounds_keep:
+                    for bg in available_backgrounds_keep:
                         st.write(f"- `{bg}`")
                 else:
                     st.write("No backgrounds available in `keep/` folder")
+                st.write("")
+                st.write("*Local files from `gif/` folder:*")
+                if available_backgrounds_gif:
+                    for bg in available_backgrounds_gif:
+                        st.write(f"- `{bg}`")
+                else:
+                    st.write("No backgrounds available in `gif/` folder")
                 st.write("")
                 st.write("*Or use web video URLs:*")
                 st.write("- YouTube: `youtu.be/VIDEO_ID`")
@@ -1779,9 +1805,23 @@ def batch_greeting_tab():
                                     # Other URL types not supported
                                     st.warning(f"Row {idx + 1}: Unsupported URL type '{background}' - skipping background")
                                     background = ""
-                            elif background not in available_backgrounds:
-                                # Local file not found
-                                background = ""
+                            else:
+                                # Check if background exists in either folder
+                                background_found = False
+
+                                # Check keep/ folder first
+                                keep_path = Path(__file__).parent / "keep" / background
+                                if keep_path.exists():
+                                    background_found = True
+                                else:
+                                    # Check gif/ folder
+                                    gif_path = Path(__file__).parent / "gif" / background
+                                    if gif_path.exists():
+                                        background_found = True
+
+                                if not background_found:
+                                    st.warning(f"Row {idx + 1}: Background file '{background}' not found in keep/ or gif/ folders - skipping background")
+                                    background = ""
                         
                         status.text(f"Generating QR {idx + 1}/{len(st.session_state.batch_df)}: {to_name}...")
                         

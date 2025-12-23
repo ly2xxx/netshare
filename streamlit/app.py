@@ -1618,6 +1618,11 @@ def get_available_gifs():
 
 def batch_greeting_tab():
     """Tab for batch QR code generation from Excel"""
+
+    # Initialize session state for batch DataFrame
+    if 'batch_df' not in st.session_state:
+        st.session_state.batch_df = None
+
     st.markdown('<div class="main-header"><h1>📦 Batch QR Code Generation</h1></div>',
                 unsafe_allow_html=True)
 
@@ -1699,39 +1704,47 @@ def batch_greeting_tab():
     
     if uploaded_file is not None:
         try:
+            # Load CSV into session state (only when new file is uploaded)
             df = pd.read_csv(uploaded_file)
-            
-            st.success(f"Loaded {len(df)} greetings from CSV!")
-            
-            # Preview data
+            # Check if this is a new upload by comparing with existing data
+            if st.session_state.batch_df is None or len(df) != len(st.session_state.batch_df):
+                st.session_state.batch_df = df
+
+            st.success(f"Loaded {len(st.session_state.batch_df)} greetings from CSV!")
+
+            # Preview data with editable interface
             with st.expander("Preview Data"):
-                st.data_editor(df)
+                st.session_state.batch_df = st.data_editor(
+                    st.session_state.batch_df,
+                    key="batch_data_editor",
+                    num_rows="dynamic"
+                )
             
             # Validate data
             required_cols = ["From", "To", "Message"]
-            missing_cols = [col for col in required_cols if col not in df.columns]
-            
+            missing_cols = [col for col in required_cols if col not in st.session_state.batch_df.columns]
+
             if missing_cols:
                 st.error(f"Missing required columns: {', '.join(missing_cols)}")
                 return
-            
+
             # Validate themes
-            if "Theme" in df.columns:
-                invalid_themes = df[~df["Theme"].isna() & ~df["Theme"].isin(available_themes)]["Theme"].unique()
+            if "Theme" in st.session_state.batch_df.columns:
+                invalid_themes = st.session_state.batch_df[~st.session_state.batch_df["Theme"].isna() & ~st.session_state.batch_df["Theme"].isin(available_themes)]["Theme"].unique()
                 if len(invalid_themes) > 0:
                     st.warning(f"Some rows have invalid themes: {list(invalid_themes)}. They will use 'general'.")
             
             # Generate button
             if st.button("🚀 Generate All QR Codes", type="primary"):
                 import zipfile
-                
+
                 zip_buffer = BytesIO()
-                
+
                 progress = st.progress(0)
                 status = st.empty()
-                
+
                 with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zf:
-                    for idx, row in df.iterrows():
+                    for idx, row in st.session_state.batch_df.iterrows():
                         from_name = str(row.get("From", ""))
                         to_name = str(row.get("To", ""))
                         message = str(row.get("Message", ""))
@@ -1770,7 +1783,7 @@ def batch_greeting_tab():
                                 # Local file not found
                                 background = ""
                         
-                        status.text(f"Generating QR {idx + 1}/{len(df)}: {to_name}...")
+                        status.text(f"Generating QR {idx + 1}/{len(st.session_state.batch_df)}: {to_name}...")
                         
                         # Create greeting
                         greeting = create_holiday_greeting(
@@ -1797,8 +1810,8 @@ def batch_greeting_tab():
                         filename = f"{safe_name}_{idx + 1}.png"
                         
                         zf.writestr(filename, img_buffer.read())
-                        
-                        progress.progress((idx + 1) / len(df))
+
+                        progress.progress((idx + 1) / len(st.session_state.batch_df))
                 
                 status.text("✅ All QR codes generated!")
                 

@@ -4,7 +4,7 @@ Handles QR code display with protection and greeting letter rendering
 """
 
 import streamlit as st
-from streamlit import components
+import streamlit.components.v1 as components
 from PIL import Image
 import base64
 import io

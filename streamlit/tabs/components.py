@@ -22,7 +22,8 @@ from utils.url_utils import (
 from utils.image_utils import get_theme_display_icon
 from utils.download_tracker import log_download
 from qr.generator import generate_qr_code
-from qr.display import display_qr_with_protection
+from qr.display import display_qr_with_protection, display_animated_qr
+from config import THEME_ANIMATIONS, THEME_COLORS
 
 
 def render_theme_selector() -> str:
@@ -144,7 +145,11 @@ def render_qr_generation_flow(
     background: str = "",
     visible_message: str = "",
     all_sides: bool = False,
-    warning_text: Optional[str] = None
+    warning_text: Optional[str] = None,
+    use_animation: bool = True,
+    animation_type: Optional[str] = None,
+    qr_module_color: Optional[str] = None,
+    qr_ring_color: Optional[str] = None
 ) -> None:
     """
     Unified QR generation and display flow
@@ -153,7 +158,7 @@ def render_qr_generation_flow(
     1. Creating greeting data
     2. Encoding to URL
     3. Generating QR code
-    4. Displaying QR with protection
+    4. Displaying QR with protection (animated or static)
     5. Showing statistics
     6. Providing download button
 
@@ -166,6 +171,10 @@ def render_qr_generation_flow(
         visible_message: Text overlay on QR
         all_sides: Display message on all 4 sides
         warning_text: Optional warning to display above QR (e.g., "No video URL entered")
+        use_animation: Whether to use animated QR (default: True)
+        animation_type: Animation type override (None = use theme default)
+        qr_module_color: QR module color override (None = use theme default)
+        qr_ring_color: QR position ring color override (None = use theme default)
 
     Returns:
         None (displays QR in Streamlit UI)
@@ -189,20 +198,42 @@ def render_qr_generation_flow(
     # 3. Get statistics based on URL length
     stats = get_greeting_stats(greeting_url)
 
-    # 4. Generate QR code with URL data and theme icon
-    qr_img = generate_qr_code(
-        greeting_url,
-        theme=theme,
-        visible_message=visible_message,
-        all_sides=all_sides
-    )
+    # 4. Determine animation and colors
+    final_animation = animation_type if animation_type is not None else THEME_ANIMATIONS.get(theme, "MaterializeIn")
+    theme_colors = THEME_COLORS.get(theme, {"module": "#1f77b4", "ring": "#ff7f0e"})
+    final_module_color = qr_module_color if qr_module_color else theme_colors["module"]
+    final_ring_color = qr_ring_color if qr_ring_color else theme_colors["ring"]
 
-    # 5. Display QR code with right-click protection
-    display_qr_with_protection(
-        qr_img,
-        caption=f"Greeting QR Code for {to_name}",
-        width=None
-    )
+    # 5. Display QR code (animated or static)
+    if use_animation:
+        # Use new animated QR display
+        display_animated_qr(
+            data=greeting_url,
+            theme=theme,
+            animation=final_animation,
+            module_color=final_module_color,
+            position_ring_color=final_ring_color,
+            visible_message=visible_message if not all_sides else None,  # Web component doesn't support all_sides
+            width=300,
+            caption=f"Greeting QR Code for {to_name}"
+        )
+    else:
+        # Use traditional static QR display (backward compatibility)
+        # Generate QR code image with theme icon and colors
+        qr_img = generate_qr_code(
+            greeting_url,
+            theme=theme,
+            visible_message=visible_message,
+            all_sides=all_sides,
+            module_color=final_module_color,
+            position_ring_color=final_ring_color
+        )
+
+        display_qr_with_protection(
+            qr_img,
+            caption=f"Greeting QR Code for {to_name}",
+            width=None
+        )
 
     # 6. Show statistics
     st.markdown('<div class="stats-box">', unsafe_allow_html=True)
@@ -214,8 +245,21 @@ def render_qr_generation_flow(
     st.markdown('</div>', unsafe_allow_html=True)
 
     # 7. Provide download button with tracking
+    # Generate static QR image for download (even if animated version was displayed)
+    if use_animation:
+        download_qr_img = generate_qr_code(
+            greeting_url,
+            theme=theme,
+            visible_message=visible_message,
+            all_sides=all_sides,
+            module_color=final_module_color,
+            position_ring_color=final_ring_color
+        )
+    else:
+        download_qr_img = qr_img  # Already generated above
+
     buf = io.BytesIO()
-    qr_img.save(buf, format='PNG')
+    download_qr_img.save(buf, format='PNG')
     byte_im = buf.getvalue()
 
     # Generate filename first for consistency

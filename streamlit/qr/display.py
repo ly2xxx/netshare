@@ -93,6 +93,133 @@ def display_qr_with_protection(qr_img: Image.Image, caption: str = "", width: in
     components.html(html_code, height=iframe_height, scrolling=False)
 
 
+def display_animated_qr(
+    data: str,
+    theme: str = "general",
+    animation: str = "MaterializeIn",
+    module_color: str = "#1f77b4",
+    position_ring_color: str = "#ff7f0e",
+    visible_message: str = None,
+    width: int = 300,
+    caption: str = ""
+) -> None:
+    """
+    Display QR code with animation using @bitjson/qr-code web component.
+
+    Args:
+        data: URL or text to encode in QR code
+        theme: Theme name from config.THEME_ICONS
+        animation: Animation type (FadeInTopDown|FadeInCenterOut|MaterializeIn|RadialRipple|RadialRippleIn|None)
+        module_color: Hex color for QR modules/dots
+        position_ring_color: Hex color for position detection markers
+        visible_message: Optional text overlay below QR code
+        width: Display width in pixels
+        caption: Caption text to display below QR code
+
+    Returns:
+        None (renders HTML component directly)
+    """
+    # Get theme emoji for icon slot
+    icon_emoji = THEME_ICONS.get(theme, "🎨") if theme != "general" else ""
+
+    # Generate unique ID for this QR code instance
+    unique_id = f"qr-{abs(hash(data)) % 10000000}"
+
+    # Prepare icon HTML if theme has an emoji
+    icon_html = ""
+    if icon_emoji:
+        icon_html = f'<div slot="icon" style="font-size: 48px; line-height: 1;">{icon_emoji}</div>'
+
+    # Prepare visible message HTML if provided
+    message_html = ""
+    if visible_message:
+        message_html = f'''
+        <div style="text-align: center; margin-top: 15px; font-size: 1.1em; color: #333; font-weight: 500;">
+            {visible_message}
+        </div>
+        '''
+
+    # Prepare caption HTML if provided
+    caption_html = ""
+    if caption:
+        caption_html = f'<p style="text-align: center; color: #666; font-size: 0.9em; margin-top: 10px;">{caption}</p>'
+
+    # Run animation when component is ready
+    animation_script = f"""
+    // Helper to start animation safely
+    const animate = () => {{
+        try {{
+            qr.animateQRCode('{animation}');
+        }} catch (e) {{
+            // Ignore errors if animation is already running or component not ready
+            console.warn('Animation attempt failed:', e);
+        }}
+    }};
+
+    // Wait for custom element to be upgraded
+    customElements.whenDefined('qr-code').then(() => {{
+        const qr = document.getElementById('{unique_id}');
+        if (!qr) return;
+
+        // 1. Listen for render events (normal flow)
+        qr.addEventListener('codeRendered', () => {{
+            setTimeout(animate, 100);
+        }});
+
+        // 2. Fallback: Try to animate after a delay in case we missed the event
+        // (common race condition if component renders fast)
+        setTimeout(animate, 500);
+    }});
+    """
+
+    if animation == "None" or not animation:
+        animation_script = ""
+
+    # Calculate iframe height (QR + message + caption + padding)
+    iframe_height = width + (80 if visible_message else 0) + (40 if caption else 0) + 100
+
+    # Build complete HTML with web component
+    # Added onerror handler to script to show user feedback if CDN fails
+    html_code = f"""
+    <script type="module" src="https://unpkg.com/@bitjson/qr-code@1.0.2/dist/qr-code.js" 
+            onerror="document.getElementById('{unique_id}-error').style.display='block';"></script>
+    
+    <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
+        <div id="{unique_id}-error" style="display:none; color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px; margin-bottom: 10px; text-align: center;">
+             ⚠️ Unable to load QR animation library. <br>Please check your internet connection.
+        </div>
+        
+        <qr-code id="{unique_id}"
+          contents="{data}"
+          module-color="{module_color}"
+          position-ring-color="{position_ring_color}"
+          position-center-color="{position_ring_color}"
+          style="width: {width}px; height: {width}px; background-color: white;">
+          {icon_html}
+        </qr-code>
+        {message_html}
+        {caption_html}
+    </div>
+    <script>
+    (function() {{
+        const qr = document.getElementById('{unique_id}');
+        if (!qr) {{
+            return;
+        }}
+
+        {animation_script}
+
+        // Add right-click protection
+        qr.addEventListener('contextmenu', e => {{ e.preventDefault(); return false; }});
+        qr.addEventListener('dragstart', e => {{ e.preventDefault(); return false; }});
+        qr.addEventListener('copy', e => {{ e.preventDefault(); return false; }});
+    }})();
+    </script>
+    """
+
+    components.html(html_code, height=iframe_height, scrolling=False)
+
+
 def display_greeting_letter(greeting: Dict) -> None:
     """
     Display greeting in a letter format with optional background

@@ -9,7 +9,69 @@ from config import THEME_ICONS
 from utils.image_utils import load_theme_icon
 
 
-def generate_qr_code(data: str, theme: str = "general", visible_message: str = None, all_sides: bool = False, error_correction=qrcode.constants.ERROR_CORRECT_H) -> Image.Image:
+def _colorize_position_markers(img: Image.Image, qr: qrcode.QRCode, ring_color: str) -> Image.Image:
+    """
+    Colorize the three position detection patterns (corner squares) in a QR code
+
+    Args:
+        img: PIL Image of the QR code
+        qr: QRCode object containing module matrix
+        ring_color: Hex color string for position markers
+
+    Returns:
+        Modified PIL Image with colored position markers
+    """
+    from PIL import ImageColor
+
+    # Convert hex color to RGB
+    rgb_color = ImageColor.getcolor(ring_color, "RGB")
+
+    # QR code parameters
+    box_size = qr.box_size
+    border = qr.border
+    modules = qr.modules
+
+    if not modules:
+        return img
+
+    module_count = len(modules)
+
+    # Position detection patterns are 7x7 modules, located at three corners
+    pattern_size = 7
+
+    # Define positions: (row_start, col_start) for each corner
+    positions = [
+        (0, 0),  # Top-left
+        (0, module_count - pattern_size),  # Top-right
+        (module_count - pattern_size, 0),  # Bottom-left
+    ]
+
+    # Create a drawing context
+    draw = ImageDraw.Draw(img)
+
+    # For each position marker
+    for row_start, col_start in positions:
+        # Iterate through the 7x7 pattern
+        for r in range(pattern_size):
+            for c in range(pattern_size):
+                module_row = row_start + r
+                module_col = col_start + c
+
+                # Check if this module is part of the pattern (should be filled)
+                if modules[module_row][module_col]:
+                    # Calculate pixel coordinates (accounting for border)
+                    x1 = (module_col + border) * box_size
+                    y1 = (module_row + border) * box_size
+                    x2 = x1 + box_size
+                    y2 = y1 + box_size
+
+                    # Draw filled rectangle with ring color
+                    draw.rectangle([x1, y1, x2, y2], fill=rgb_color)
+
+    return img
+
+
+def generate_qr_code(data: str, theme: str = "general", visible_message: str = None, all_sides: bool = False, error_correction=qrcode.constants.ERROR_CORRECT_H, module_color: str = None, position_ring_color: str = None) -> Image.Image:
     """
     Generate QR code from data string
 
@@ -19,6 +81,8 @@ def generate_qr_code(data: str, theme: str = "general", visible_message: str = N
         visible_message: Optional text to display around the QR code
         all_sides: If True, display visible_message on all 4 sides (top, bottom, left, right)
         error_correction: QR error correction level
+        module_color: Color for QR code modules (hex string like "#FF0000"), defaults to black
+        position_ring_color: Color for position detection markers (hex string), defaults to module_color
 
     Returns:
         PIL Image of QR code
@@ -32,9 +96,15 @@ def generate_qr_code(data: str, theme: str = "general", visible_message: str = N
     qr.add_data(data)
     qr.make(fit=True)
 
-    img = qr.make_image(fill_color="black", back_color="white")
+    # Use provided colors or defaults
+    fill = module_color if module_color else "black"
+    img = qr.make_image(fill_color=fill, back_color="white")
     # Convert qrcode.image.pil.PilImage to standard PIL.Image.Image
     pil_img = img.convert('RGB')
+
+    # Colorize position markers if a different color is specified
+    if position_ring_color and position_ring_color != fill:
+        pil_img = _colorize_position_markers(pil_img, qr, position_ring_color)
 
     # Add theme icon if applicable
     if theme in THEME_ICONS and THEME_ICONS[theme]:

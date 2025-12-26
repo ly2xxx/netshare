@@ -16,6 +16,42 @@ THEME_ICONS = {
     "general": None  # No icon for general theme
 }
 
+# Animation presets mapped to themes
+THEME_ANIMATIONS = {
+    "snowflake": "FadeInCenterOut",
+    "fireworks": "RadialRipple",
+    "lights": "FadeInTopDown",
+    "stars": "RadialRippleIn",
+    "confetti": "MaterializeIn",
+    "champagne": "RadialRipple",
+    "hearts": "FadeInCenterOut",
+    "farewell": "FadeInTopDown",
+    "general": "MaterializeIn"
+}
+
+# Color palettes for themes (QR code colors)
+THEME_COLORS = {
+    "snowflake": {"module": "#4FC3F7", "ring": "#0288D1"},
+    "fireworks": {"module": "#FF5722", "ring": "#FFC107"},
+    "lights": {"module": "#FFD700", "ring": "#FFA500"},
+    "stars": {"module": "#FFD700", "ring": "#FF8C00"},
+    "confetti": {"module": "#E91E63", "ring": "#9C27B0"},
+    "champagne": {"module": "#FFD700", "ring": "#FF6F00"},
+    "hearts": {"module": "#E91E63", "ring": "#D81B60"},
+    "farewell": {"module": "#1976D2", "ring": "#1565C0"},
+    "general": {"module": "#1f77b4", "ring": "#ff7f0e"}
+}
+
+# Available animation types for QR codes
+AVAILABLE_ANIMATIONS = [
+    "MaterializeIn",
+    "FadeInTopDown",
+    "FadeInCenterOut",
+    "RadialRipple",
+    "RadialRippleIn",
+    "None"
+]
+
 # Page configuration settings
 PAGE_CONFIG = {
     "page_title": "Holiday Greeting QR",

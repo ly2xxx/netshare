@@ -56,6 +56,12 @@ def main():
 
         st.markdown("---")
 
+        st.write("### Support")
+        st.write("If you like this tool, consider supporting it!")
+        st.link_button("☕ Buy me a coffee (£1)", "https://www.paypal.com/ncp/payment/NUQG396UTFRMG")
+
+        st.markdown("---")
+
         # Batch tab toggle
         show_batch = st.checkbox("Show Batch Tab", value=False, help="Enable batch QR code generation from Excel")
 

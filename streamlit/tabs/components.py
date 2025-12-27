@@ -275,3 +275,7 @@ def render_qr_generation_flow(
         on_click=log_download,
         args=(filename,)
     )
+
+    # 8. Add Goodwill Payment Button
+    st.markdown("---")
+    st.link_button("☕ Buy me a coffee (£1)", "https://www.paypal.com/ncp/payment/NUQG396UTFRMG", help="Support the project with a small donation")

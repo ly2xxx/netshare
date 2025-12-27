@@ -146,7 +146,7 @@ def render_qr_generation_flow(
     visible_message: str = "",
     all_sides: bool = False,
     warning_text: Optional[str] = None,
-    use_animation: bool = True,
+    use_animation: bool = False,
     animation_type: Optional[str] = None,
     qr_module_color: Optional[str] = None,
     qr_ring_color: Optional[str] = None

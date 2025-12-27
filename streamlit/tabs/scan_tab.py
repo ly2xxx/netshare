@@ -48,6 +48,7 @@ def render() -> None:
             display_greeting_letter(greeting)
 
             st.markdown("---")
+            st.link_button("☕ Buy me a coffee (£1)", "https://www.paypal.com/ncp/payment/NUQG396UTFRMG", help="Support the project with a small donation")
 
             # Option to create their own or scan another
             col1, col2 = st.columns(2)
@@ -110,6 +111,9 @@ def render() -> None:
                         if greeting:
                             # Display formatted greeting
                             display_greeting_letter(greeting)
+
+                            st.markdown("---")
+                            st.link_button("☕ Buy me a coffee (£1)", "https://www.paypal.com/ncp/payment/NUQG396UTFRMG", help="Support the project with a small donation")
                         else:
                             st.warning("This QR code doesn't contain a valid greeting format.")
                             st.write("**Decoded data:**")

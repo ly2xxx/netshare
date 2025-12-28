@@ -17,7 +17,9 @@ from utils.url_utils import (
     is_web_url,
     classify_background,
     convert_youtube_to_embed_url,
-    convert_google_drive_to_embed_url
+    convert_google_drive_to_embed_url,
+    convert_facebook_to_embed_url,
+    convert_instagram_to_embed_url
 )
 from utils.image_utils import get_theme_display_icon
 from utils.download_tracker import log_download
@@ -123,6 +125,24 @@ def validate_custom_url_callback() -> None:
             st.session_state.custom_url_validation_status = 'invalid'
             st.session_state.custom_url_validation_message = "⚠️ Invalid Google Drive URL. Could not extract file ID."
 
+    elif bg_type == 'facebook':
+        embed_url = convert_facebook_to_embed_url(url)
+        if embed_url:
+            st.session_state.custom_url_validation_status = 'valid'
+            st.session_state.custom_url_validation_message = "✅ Valid Facebook video/reel URL"
+        else:
+            st.session_state.custom_url_validation_status = 'invalid'
+            st.session_state.custom_url_validation_message = "⚠️ Invalid Facebook URL. Must be a video or reel URL."
+
+    elif bg_type == 'instagram':
+        embed_url = convert_instagram_to_embed_url(url)
+        if embed_url:
+            st.session_state.custom_url_validation_status = 'valid'
+            st.session_state.custom_url_validation_message = "⚠️ Instagram detected. Embedding may be limited - will provide 'Open in Instagram' option."
+        else:
+            st.session_state.custom_url_validation_status = 'invalid'
+            st.session_state.custom_url_validation_message = "⚠️ Invalid Instagram URL. Must be a reel, post, or TV URL."
+
     elif bg_type == 'direct_video':
         st.session_state.custom_url_validation_status = 'valid'
         file_ext = url.split('.')[-1].upper()
@@ -130,7 +150,7 @@ def validate_custom_url_callback() -> None:
 
     elif bg_type == 'other_url':
         st.session_state.custom_url_validation_status = 'invalid'
-        st.session_state.custom_url_validation_message = "⚠️ Unsupported URL type. Use YouTube or direct video links (.mp4, .webm, .mov, .avi, .m3u8)"
+        st.session_state.custom_url_validation_message = "⚠️ Unsupported URL type. Use YouTube, Facebook, Instagram, Google Drive, or direct video links (.mp4, .webm, .mov, .avi, .m3u8)"
 
     else:
         st.session_state.custom_url_validation_status = 'invalid'

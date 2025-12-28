@@ -73,8 +73,8 @@ def render() -> None:
             custom_url = st.text_input(
                 "Video URL",
                 value=st.session_state.custom_video_url,
-                placeholder="https://youtu.be/..., https://drive.google.com/file/d/.../view or https://example.com/video.mp4",
-                help="Paste a YouTube URL, Google Drive shared video, or direct video link (.mp4, .webm, .mov, .avi, .m3u8)",
+                placeholder="https://youtu.be/..., https://facebook.com/reel/..., or https://example.com/video.mp4",
+                help="Paste a YouTube URL, Google Drive shared video, Facebook video/reel, Instagram reel, or direct video link (.mp4, .webm, .mov, .avi, .m3u8)",
                 key="custom_video_url_input",
                 on_change=validate_custom_url_callback
             )

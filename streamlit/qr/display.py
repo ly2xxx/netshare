@@ -17,6 +17,8 @@ from utils.url_utils import (
     classify_background,
     convert_youtube_to_embed_url,
     convert_google_drive_to_embed_url,
+    convert_facebook_to_embed_url,
+    convert_instagram_to_embed_url,
     linkify_urls
 )
 from utils.image_utils import get_img_as_base64
@@ -271,6 +273,32 @@ def display_greeting_letter(greeting: Dict) -> None:
                         allowfullscreen
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     ></iframe>'''
+            elif bg_type == 'facebook':
+                # Facebook embed iframe
+                embed_url = convert_facebook_to_embed_url(background_name)
+                if embed_url:
+                    background_html = f'''<iframe
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; z-index: -1; opacity: 0.7;"
+                        src="{embed_url}"
+                        allow="autoplay; encrypted-media; picture-in-picture"
+                        allowfullscreen
+                    ></iframe>'''
+            elif bg_type == 'instagram':
+                # Instagram embed iframe with fallback button
+                embed_url = convert_instagram_to_embed_url(background_name)
+                if embed_url:
+                    # Attempt embed but also provide fallback button
+                    background_html = f'''<iframe
+                        style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; z-index: -1; opacity: 0.7;"
+                        src="{embed_url}"
+                        allowfullscreen
+                    ></iframe>
+                    <div style="position: absolute; top: 10px; right: 10px; z-index: 5;">
+                        <a href="{background_name}" target="_blank" rel="noopener noreferrer"
+                           style="display: inline-block; padding: 10px 20px; background: #e4405f; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">
+                            📱 Open in Instagram
+                        </a>
+                    </div>'''
             elif bg_type == 'direct_video':
                 # Direct HTML5 video from URL
                 background_html = f'''<video autoplay loop muted playsinline

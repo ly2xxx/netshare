@@ -1,9 +1,10 @@
 """
 URL utility functions for background handling and link processing
-Handles YouTube, Google Drive, and general web URL conversions
+Handles YouTube, Google Drive, Facebook, Instagram, and general web URL conversions
 """
 
 import re
+import urllib.parse
 from typing import Optional
 
 
@@ -21,8 +22,9 @@ def is_web_url(background_str: str) -> bool:
         return False
     background_lower = background_str.lower()
     return background_lower.startswith(('http://', 'https://')) or \
-           'youtu.be' in background_lower or \
-           'youtube.com' in background_lower
+           any(domain in background_lower for domain in [
+               'youtu.be', 'youtube.com', 'facebook.com', 'fb.watch', 'instagram.com'
+           ])
 
 
 def classify_background(background_str: str) -> str:
@@ -33,7 +35,8 @@ def classify_background(background_str: str) -> str:
         background_str: Background identifier (filename or URL)
 
     Returns:
-        One of: 'local_file', 'youtube', 'google_drive', 'direct_video', 'other_url', or 'invalid'
+        One of: 'local_file', 'youtube', 'google_drive', 'facebook', 'instagram',
+                'direct_video', 'other_url', or 'invalid'
     """
     if not background_str:
         return 'invalid'
@@ -50,6 +53,18 @@ def classify_background(background_str: str) -> str:
     # Check for YouTube URLs
     if 'youtube.com' in background_lower or 'youtu.be' in background_lower:
         return 'youtube'
+
+    # Check for Facebook URLs
+    if 'facebook.com' in background_lower or 'fb.watch' in background_lower:
+        # Verify it's a video/reel URL
+        if any(pattern in background_lower for pattern in ['/reel/', '/videos/', '/watch', 'fb.watch']):
+            return 'facebook'
+
+    # Check for Instagram URLs
+    if 'instagram.com' in background_lower:
+        # Verify it's a reel/post/tv URL
+        if any(pattern in background_lower for pattern in ['/reel/', '/p/', '/tv/']):
+            return 'instagram'
 
     # Check for direct video URLs (by extension)
     if any(background_lower.endswith(ext) for ext in ['.mp4', '.webm', '.mov', '.avi', '.m3u8']):
@@ -120,6 +135,98 @@ def convert_google_drive_to_embed_url(drive_url: str) -> Optional[str]:
     if match:
         file_id = match.group(1)
         return f"https://drive.google.com/file/d/{file_id}/preview"
+
+    return None
+
+
+def convert_facebook_to_embed_url(facebook_url: str) -> Optional[str]:
+    """
+    Convert Facebook video/reel URL to embeddable iframe URL.
+
+    Supports:
+    - https://www.facebook.com/reel/{ID}
+    - https://www.facebook.com/{user}/videos/{ID}
+    - https://www.facebook.com/watch?v={ID}
+    - https://fb.watch/{SHORT_ID}
+
+    Args:
+        facebook_url: Facebook video/reel URL
+
+    Returns:
+        Embed URL using Facebook's video plugin, or None if invalid
+
+    Notes:
+        - Uses Facebook's plugin: https://www.facebook.com/plugins/video.php
+        - Requires URL encoding of original Facebook URL
+        - May not work for all Reels (Facebook limitation as of 2025)
+    """
+    if not facebook_url:
+        return None
+
+    # Normalize URL
+    url_lower = facebook_url.lower()
+
+    # Pattern 1: facebook.com/reel/{ID}
+    reel_match = re.search(r'facebook\.com/reel/(\d+)', facebook_url)
+    if reel_match:
+        reel_id = reel_match.group(1)
+        # Reconstruct canonical URL
+        canonical_url = f"https://www.facebook.com/reel/{reel_id}"
+        encoded_url = urllib.parse.quote(canonical_url, safe='')
+        return f"https://www.facebook.com/plugins/video.php?href={encoded_url}&show_text=false&width=560"
+
+    # Pattern 2: facebook.com/*/videos/{ID} or facebook.com/watch?v={ID}
+    video_match = re.search(r'facebook\.com/(?:[\w.]+/videos/|watch\?v=)(\d+)', facebook_url)
+    if video_match:
+        # Use original URL for embedding (preserve full path)
+        encoded_url = urllib.parse.quote(facebook_url, safe='')
+        return f"https://www.facebook.com/plugins/video.php?href={encoded_url}&show_text=false&width=560"
+
+    # Pattern 3: fb.watch/{SHORT_ID}
+    fbwatch_match = re.search(r'fb\.watch/([a-zA-Z0-9_-]+)', facebook_url)
+    if fbwatch_match:
+        # fb.watch redirects to full URL, but plugin should handle it
+        encoded_url = urllib.parse.quote(facebook_url, safe='')
+        return f"https://www.facebook.com/plugins/video.php?href={encoded_url}&show_text=false&width=560"
+
+    return None
+
+
+def convert_instagram_to_embed_url(instagram_url: str) -> Optional[str]:
+    """
+    Convert Instagram reel/post URL to embeddable format.
+
+    Supports:
+    - https://www.instagram.com/reel/{ID}/
+    - https://www.instagram.com/p/{ID}/
+    - https://www.instagram.com/tv/{ID}/
+
+    Args:
+        instagram_url: Instagram reel/post URL
+
+    Returns:
+        Embed URL using Instagram's embed format, or None if invalid
+
+    Notes:
+        - Instagram embed requires /embed/ path suffix
+        - May not work reliably without Meta oEmbed API (2025 limitation)
+        - Fallback: Display message to user about opening in Instagram app
+    """
+    if not instagram_url:
+        return None
+
+    # Pattern: instagram.com/{type}/{ID}
+    # Where type is: reel, p (post), tv (IGTV)
+    # ID is alphanumeric (usually 11 chars but can vary)
+    match = re.search(r'instagram\.com/(reel|p|tv)/([a-zA-Z0-9_-]+)', instagram_url)
+
+    if match:
+        content_type = match.group(1)
+        content_id = match.group(2)
+
+        # Instagram embed URL pattern
+        # Note: This may not work without Meta API access in 2025
+        return f"https://www.instagram.com/{content_type}/{content_id}/embed/"
 
     return None
 

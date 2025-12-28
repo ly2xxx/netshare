@@ -14,7 +14,7 @@ from greeting_formats import create_holiday_greeting, encode_greeting_to_url
 from qr.generator import generate_qr_code
 from utils.file_utils import get_all_available_backgrounds, get_available_backgrounds, get_available_gifs
 from utils.url_utils import is_web_url, classify_background, convert_youtube_to_embed_url, convert_google_drive_to_embed_url
-from config import THEME_ICONS
+from config import THEME_ICONS, THEME_COLORS
 
 
 def render() -> None:
@@ -216,8 +216,17 @@ def render() -> None:
                         # Encode to URL
                         greeting_url = encode_greeting_to_url(greeting)
 
-                        # Generate QR code
-                        qr_img = generate_qr_code(greeting_url, theme=theme, visible_message=visible_msg)
+                        # Get theme colors for colorized QR code
+                        theme_colors = THEME_COLORS.get(theme, THEME_COLORS['general'])
+
+                        # Generate QR code with theme colors
+                        qr_img = generate_qr_code(
+                            greeting_url,
+                            theme=theme,
+                            visible_message=visible_msg,
+                            module_color=theme_colors['module'],
+                            position_ring_color=theme_colors['ring']
+                        )
 
                         # Save to zip
                         img_buffer = BytesIO()

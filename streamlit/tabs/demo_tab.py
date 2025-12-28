@@ -28,6 +28,13 @@ def init_demo_state():
     """Initialize session state for demo tab"""
     if "demo_greeting" not in st.session_state:
         st.session_state.demo_greeting = get_seasonal_demo()
+    else:
+        # Validate and fix corrupted message field (should be plain text, not HTML)
+        greeting = st.session_state.demo_greeting
+        if "<" in greeting.message and ">" in greeting.message:
+            # Message contains HTML tags - reset to default
+            st.session_state.demo_greeting = get_seasonal_demo()
+
     if "demo_qr_generated" not in st.session_state:
         st.session_state.demo_qr_generated = False
     if "demo_customize_expanded" not in st.session_state:
@@ -108,47 +115,18 @@ def display_greeting_card_preview(greeting: DemoGreeting):
     theme_emoji = THEME_ICONS.get(greeting.theme, "🎁")
     
     st.markdown(f"""
-    <div style="
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 30px;
-        border-radius: 20px;
-        color: white;
-        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
-        max-width: 600px;
-        margin: 0 auto;
-    ">
-        <div style="text-align: center; margin-bottom: 20px;">
-            <div style="font-size: 3em; margin-bottom: 10px;">{theme_emoji}</div>
-            <div style="
-                background: rgba(255,255,255,0.2);
-                display: inline-block;
-                padding: 5px 20px;
-                border-radius: 20px;
-                font-weight: bold;
-            ">{greeting.occasion}</div>
-        </div>
-        
-        <div style="
-            background: rgba(255,255,255,0.95);
-            color: #333;
-            padding: 25px;
-            border-radius: 15px;
-            position: relative;
-        ">
-            <p style="margin: 5px 0 0 0; font-weight: 600; font-size: 1.1em;">From: {greeting.from_name}</p>
-            <p style="margin: 5px 0 20px 0; font-weight: 600; font-size: 1.1em;">To: {greeting.to_name}</p>
-            
-            <p style="
-                font-family: Georgia, serif;
-                font-size: 1.15em;
-                line-height: 1.6;
-                color: #444;
-                font-style: italic;
-                margin: 0;
-            ">"{greeting.message}"</p>
-        </div>
+<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 20px; color: white; box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4); max-width: 600px; margin: 0 auto;">
+    <div style="text-align: center; margin-bottom: 20px;">
+        <div style="font-size: 3em; margin-bottom: 10px;">{theme_emoji}</div>
+        <div style="background: rgba(255,255,255,0.2); display: inline-block; padding: 5px 20px; border-radius: 20px; font-weight: bold;">{greeting.occasion}</div>
     </div>
-    """, unsafe_allow_html=True)
+    <div style="background: rgba(255,255,255,0.95); color: #333; padding: 25px; border-radius: 15px; position: relative;">
+        <p style="margin: 5px 0 0 0; font-weight: 600; font-size: 1.1em;">From: {greeting.from_name}</p>
+        <p style="margin: 5px 0 20px 0; font-weight: 600; font-size: 1.1em;">To: {greeting.to_name}</p>
+        <p style="font-family: Georgia, serif; font-size: 1.15em; line-height: 1.6; color: #444; font-style: italic; margin: 0;">"{greeting.message}"</p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 def display_theme_buttons(current_theme: str):
     """Display theme selection buttons"""
@@ -212,9 +190,16 @@ def render_step_2_preview():
             new_occasion = st.text_input("Occasion", value=greeting.occasion, key="step2_occasion")
         
         new_message = st.text_area("Message", value=greeting.message, height=100, key="step2_msg")
-        
+
         # Apply changes button
         if st.button("Update Preview", type="secondary", width='stretch'):
+            # Validate message doesn't contain HTML (strip tags if found)
+            if "<" in new_message and ">" in new_message:
+                import re
+                cleaned_message = re.sub(r'<[^>]+>', '', new_message)
+                st.warning("⚠️ HTML tags were detected and removed from your message. Please use plain text only.")
+                new_message = cleaned_message
+
             st.session_state.demo_greeting.from_name = new_from
             st.session_state.demo_greeting.to_name = new_to
             st.session_state.demo_greeting.occasion = new_occasion
@@ -271,29 +256,15 @@ def render_step_4_result():
         # Mobile frame mockup simplified
         theme_emoji = THEME_ICONS.get(greeting.theme, "🎁")
         st.markdown(f"""
-        <div style="
-            border: 8px solid #333;
-            border-radius: 30px;
-            padding: 15px;
-            background: white;
-            max-width: 300px;
-            margin: 0 auto;
-            position: relative;
-        ">
-            <div style="
-                background: #f0f0f0;
-                border-radius: 20px;
-                padding: 15px;
-                text-align: center;
-                min-height: 350px;
-            ">
-                <div style="font-size: 2.5em; margin-top: 20px;">{theme_emoji}</div>
-                <h4 style="margin: 10px 0; color: #667eea;">Thinking of You</h4>
-                <p style="font-size: 0.9em; color: #555;">"{greeting.message[:80]}..."</p>
-                <div style="margin-top: 20px; font-size: 0.8em; color: #888;">Tap to open</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
+<div style="border: 8px solid #333; border-radius: 30px; padding: 15px; background: white; max-width: 300px; margin: 0 auto; position: relative;">
+    <div style="background: #f0f0f0; border-radius: 20px; padding: 15px; text-align: center; min-height: 350px;">
+        <div style="font-size: 2.5em; margin-top: 20px;">{theme_emoji}</div>
+        <h4 style="margin: 10px 0; color: #667eea;">Thinking of You</h4>
+        <p style="font-size: 0.9em; color: #555;">"{greeting.message[:80]}..."</p>
+        <div style="margin-top: 20px; font-size: 0.8em; color: #888;">Tap to open</div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
         
     st.markdown("---")
     

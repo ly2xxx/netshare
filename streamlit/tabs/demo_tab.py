@@ -70,238 +70,252 @@ def generate_demo_qr_code(greeting: DemoGreeting) -> Image.Image:
 # UI Components
 # ============================================================================
 
-def display_greeting_preview(greeting: DemoGreeting):
-    """Display sample greeting in a nice card"""
+def get_step_container_style(step_num: int, is_active: bool) -> str:
+    """Get CSS style for step containers"""
     
-    # Theme emoji
+    border_color = "#667eea" if is_active else "#e0e0e0"
+    bg_color = "#ffffff" if is_active else "#f9f9f9"
+    opacity = "1.0" if is_active else "0.7"
+    
+    return f"""
+    <div style="
+        border: 2px solid {border_color};
+        border-radius: 15px;
+        padding: 20px;
+        margin-bottom: 20px;
+        background-color: {bg_color};
+        opacity: {opacity};
+        transition: all 0.3s ease;
+    ">
+        <div style="
+            display: inline-block;
+            background: {border_color};
+            color: white;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            text-align: center;
+            line-height: 30px;
+            font-weight: bold;
+            margin-right: 10px;
+        ">{step_num}</div>
+        <span style="font-size: 1.2em; font-weight: bold; color: #333;">
+    """
+
+def display_greeting_card_preview(greeting: DemoGreeting):
+    """Display the greeting card preview"""
+    
     theme_emoji = THEME_ICONS.get(greeting.theme, "🎁")
     
     st.markdown(f"""
     <div style="
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 25px;
-        border-radius: 15px;
+        padding: 30px;
+        border-radius: 20px;
         color: white;
-        margin-bottom: 20px;
-        box-shadow: 0 8px 32px rgba(102, 126, 234, 0.3);
+        box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        max-width: 600px;
+        margin: 0 auto;
     ">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-            <span style="font-size: 2em;">{theme_emoji}</span>
-            <span style="
+        <div style="text-align: center; margin-bottom: 20px;">
+            <div style="font-size: 3em; margin-bottom: 10px;">{theme_emoji}</div>
+            <div style="
                 background: rgba(255,255,255,0.2);
-                padding: 5px 15px;
+                display: inline-block;
+                padding: 5px 20px;
                 border-radius: 20px;
-                font-size: 0.9em;
-            ">{greeting.occasion}</span>
+                font-weight: bold;
+            ">{greeting.occasion}</div>
         </div>
+        
         <div style="
             background: rgba(255,255,255,0.95);
             color: #333;
-            padding: 20px;
-            border-radius: 10px;
+            padding: 25px;
+            border-radius: 15px;
+            position: relative;
         ">
-            <p style="margin: 5px 0; font-size: 1.1em;"><strong>From:</strong> {greeting.from_name}</p>
-            <p style="margin: 5px 0 15px 0; font-size: 1.1em;"><strong>To:</strong> {greeting.to_name}</p>
+            <p style="margin: 5px 0 0 0; font-weight: 600; font-size: 1.1em;">From: {greeting.from_name}</p>
+            <p style="margin: 5px 0 20px 0; font-weight: 600; font-size: 1.1em;">To: {greeting.to_name}</p>
+            
             <p style="
+                font-family: Georgia, serif;
+                font-size: 1.15em;
+                line-height: 1.6;
+                color: #444;
                 font-style: italic;
-                color: #555;
-                border-left: 3px solid #667eea;
-                padding-left: 15px;
-                margin: 15px 0 0 0;
+                margin: 0;
             ">"{greeting.message}"</p>
         </div>
     </div>
     """, unsafe_allow_html=True)
 
-
-def display_theme_selector(current_theme: str, key_prefix: str = "main") -> str:
-    """Display theme selector with visual icons
-    
-    Args:
-        current_theme: Currently selected theme
-        key_prefix: Unique prefix for button keys to avoid duplicates
-    """
+def display_theme_buttons(current_theme: str):
+    """Display theme selection buttons"""
     
     themes = list(THEME_ICONS.keys())
-    # Filter out None/general for cleaner display
     themes = [t for t in themes if t != "general" and THEME_ICONS.get(t)]
     
-    cols = st.columns(min(8, len(themes)))
+    cols = st.columns(8)
     
-    selected_theme = current_theme
     for idx, theme in enumerate(themes):
-        with cols[idx % len(cols)]:
+        with cols[idx % 8]:
             emoji = THEME_ICONS.get(theme, "🎁")
             is_selected = theme == current_theme
-            btn_type = "primary" if is_selected else "secondary"
+            
+            # Use columns to center buttons if needed
             if st.button(
                 f"{emoji}",
-                key=f"{key_prefix}_theme_{theme}",
-                help=theme.title(),
-                use_container_width=True
+                key=f"step1_theme_{theme}",
+                help=f"Select {theme.title()} theme",
+                width='stretch',
+                type="primary" if is_selected else "secondary"
             ):
-                selected_theme = theme
-    
-    return selected_theme
+                return theme
+                
+    return current_theme
 
+def render_step_1_theme():
+    """Render Step 1: Choose Theme"""
+    
+    greeting = st.session_state.demo_greeting
+    
+    st.markdown("### Step 1: Choose Your Vibe")
+    st.info("💡 **Tip:** Pick a theme that matches your occasion. The colors and animations will adapt automatically!")
+    
+    new_theme = display_theme_buttons(greeting.theme)
+    if new_theme != greeting.theme:
+        st.session_state.demo_greeting.theme = new_theme
+        st.session_state.demo_greeting.animation = ANIMATION_PRESETS.get(new_theme, ["MaterializeIn"])[0]
+        st.rerun()
 
-def display_customization_panel(greeting: DemoGreeting) -> Dict:
-    """Display expandable customization panel"""
+def render_step_2_preview():
+    """Render Step 2: Preview & Personalize"""
     
-    # Create two columns for better layout
-    col1, col2 = st.columns(2)
+    greeting = st.session_state.demo_greeting
     
-    with col1:
-        from_name = st.text_input(
-            "From (Your Name)",
-            value=greeting.from_name,
-            key="demo_from_name"
-        )
+    st.markdown("### Step 2: Preview & Personalize")
+    st.info("💡 **Tip:** This is how your greeting will look. You can make quick edits below!")
+    
+    # Preview
+    display_greeting_card_preview(greeting)
+    
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # Inline customization using expander
+    with st.expander("✍️ **Edit Names & Message**", expanded=False):
+        col1, col2 = st.columns(2)
+        with col1:
+            new_from = st.text_input("From", value=greeting.from_name, key="step2_from")
+            new_to = st.text_input("To", value=greeting.to_name, key="step2_to")
+        with col2:
+            new_occasion = st.text_input("Occasion", value=greeting.occasion, key="step2_occasion")
         
-        to_name = st.text_input(
-            "To (Recipient Name)",
-            value=greeting.to_name,
-            key="demo_to_name"
-        )
+        new_message = st.text_area("Message", value=greeting.message, height=100, key="step2_msg")
+        
+        # Apply changes button
+        if st.button("Update Preview", type="secondary", width='stretch'):
+            st.session_state.demo_greeting.from_name = new_from
+            st.session_state.demo_greeting.to_name = new_to
+            st.session_state.demo_greeting.occasion = new_occasion
+            st.session_state.demo_greeting.message = new_message
+            st.rerun()
+
+def render_step_3_generate():
+    """Render Step 3: Generate Action"""
     
+    st.markdown("### Step 3: Create Magic")
+    st.info("💡 **Tip:** Ready? Click below to generate your unique greeting QR code!")
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        # Find current occasion index
-        occasion_index = 0
-        if greeting.occasion in OCCASION_PRESETS:
-            occasion_index = OCCASION_PRESETS.index(greeting.occasion)
-        
-        occasion = st.selectbox(
-            "Occasion",
-            options=OCCASION_PRESETS,
-            index=occasion_index,
-            key="demo_occasion"
-        )
-        
-        custom_occasion = st.text_input(
-            "Or enter custom occasion",
-            value="",
-            key="demo_custom_occasion"
-        )
-        
-        # Use custom if provided, otherwise use selected
-        final_occasion = custom_occasion if custom_occasion else occasion
-    
-    # Message customization
-    st.markdown("**Message** *(max 500 characters)*")
-    message = st.text_area(
-        "Your greeting message",
-        value=greeting.message,
-        height=100,
-        max_chars=500,
-        key="demo_message",
-        label_visibility="collapsed"
-    )
-    
-    char_count = len(message)
-    char_color = "#28a745" if char_count < 300 else ("#ffc107" if char_count < 400 else "#dc3545")
-    st.markdown(f"<p style='text-align:right; color:{char_color}; margin-top:-10px;'>{char_count}/500</p>", unsafe_allow_html=True)
-    
-    # Theme selection
-    st.markdown("**Select Theme**")
-    theme = display_theme_selector(greeting.theme, key_prefix="custom")
-    
-    # Update theme in session state if changed
-    if theme != greeting.theme:
-        st.session_state.demo_greeting.theme = theme
-    
-    # Return customized data
-    return {
-        "from_name": from_name,
-        "to_name": to_name,
-        "occasion": final_occasion,
-        "message": message,
-        "theme": theme,
-        "animation": ANIMATION_PRESETS.get(theme, ["MaterializeIn"])[0]
-    }
+        if st.button(
+            "✨ Generate QR Code ✨",
+            type="primary",
+            width='stretch',
+            key="step3_generate_btn"
+        ):
+            st.session_state.demo_qr_generated = True
+            st.rerun()
 
-
-def display_qr_with_mobile_mockup(qr_image: Image.Image, greeting: DemoGreeting):
-    """Display QR code with mobile frame mockup showing scan result"""
+def render_step_4_result():
+    """Render Step 4: The Result"""
+    
+    greeting = st.session_state.demo_greeting
+    
+    st.success("🎉 **Success!** Your interactive greeting is ready.")
     
     col1, col2 = st.columns([1, 1])
     
     with col1:
-        st.markdown("### 📱 Your QR Code")
-        st.image(qr_image, use_container_width=True, caption="Scan to see the greeting")
+        st.markdown("#### 📱 Your Unique QR")
+        # Generate QR
+        qr_img = generate_demo_qr_code(greeting)
+        st.image(qr_img, width='stretch', caption="Scan me!")
         
-        # Action buttons
-        button_col1, button_col2, button_col3 = st.columns(3)
+        # Download
+        img_byte_arr = io.BytesIO()
+        qr_img.save(img_byte_arr, format='PNG')
+        img_byte_arr.seek(0)
         
-        with button_col1:
-            # Download button
-            img_byte_arr = io.BytesIO()
-            qr_image.save(img_byte_arr, format='PNG')
-            img_byte_arr.seek(0)
-            
-            st.download_button(
-                label="⬇️ Download",
-                data=img_byte_arr.getvalue(),
-                file_name=f"demo_{greeting.from_name}_{greeting.to_name}_greeting.png",
-                mime="image/png",
-                key="demo_download_qr"
-            )
-        
-        with button_col2:
-            if st.button("📤 Share", key="demo_share"):
-                st.info("Share functionality coming soon!")
-        
-        with button_col3:
-            if st.button("🔄 Reset", key="demo_new"):
-                st.session_state.demo_greeting = get_seasonal_demo()
-                st.session_state.demo_qr_generated = False
-                st.session_state.demo_customize_expanded = False
-                st.rerun()
-    
+        st.download_button(
+            "⬇️ Download Image",
+            data=img_byte_arr.getvalue(),
+            file_name="my_greeting_qr.png",
+            mime="image/png",
+            width='stretch'
+        )
+
     with col2:
-        st.markdown("### 👀 Preview When Scanned")
-        
-        # Mobile frame mockup with gradient
+        st.markdown("#### 👀 Scan Preview")
+        # Mobile frame mockup simplified
         theme_emoji = THEME_ICONS.get(greeting.theme, "🎁")
         st.markdown(f"""
         <div style="
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 25px;
-            border-radius: 25px;
-            text-align: center;
-            color: white;
-            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.4);
+            border: 8px solid #333;
+            border-radius: 30px;
+            padding: 15px;
+            background: white;
+            max-width: 300px;
+            margin: 0 auto;
+            position: relative;
         ">
             <div style="
-                background: white;
-                color: #333;
-                padding: 20px;
-                border-radius: 15px;
-                margin-bottom: 15px;
+                background: #f0f0f0;
+                border-radius: 20px;
+                padding: 15px;
+                text-align: center;
+                min-height: 350px;
             ">
-                <span style="font-size: 2.5em;">{theme_emoji}</span>
-                <h3 style="margin: 10px 0 0 0; color: #667eea;">Special Greeting</h3>
-            </div>
-            
-            <div style="
-                background: white;
-                color: #333;
-                padding: 20px;
-                border-radius: 12px;
-                text-align: left;
-            ">
-                <p style="margin: 5px 0;"><strong>From:</strong> {greeting.from_name}</p>
-                <p style="margin: 5px 0;"><strong>To:</strong> {greeting.to_name}</p>
-                <p style="margin: 15px 0 5px 0; font-style: italic; color: #555;">
-                    "{greeting.message}"
-                </p>
-                <hr style="margin: 15px 0; border: none; border-top: 1px solid #eee;">
-                <p style="font-size: 0.85em; color: #888; margin: 0;">
-                    {greeting.theme.title()} Theme • {datetime.now().strftime('%b %d, %Y')}
-                </p>
+                <div style="font-size: 2.5em; margin-top: 20px;">{theme_emoji}</div>
+                <h4 style="margin: 10px 0; color: #667eea;">Thinking of You</h4>
+                <p style="font-size: 0.9em; color: #555;">"{greeting.message[:80]}..."</p>
+                <div style="margin-top: 20px; font-size: 0.8em; color: #888;">Tap to open</div>
             </div>
         </div>
         """, unsafe_allow_html=True)
-
+        
+    st.markdown("---")
+    
+    st.markdown("""
+    <div style="text-align: center; margin-bottom: 20px;">
+        <h3>🚀 Ready to make it real?</h3>
+        <p>Create a fully customizable greeting with your own photos, videos, and more!</p>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("🎁 Create My Own Greeting", type="primary", width='stretch'):
+             st.session_state["from_demo"] = True
+             # set query param to switch tab
+             st.query_params["tab"] = "create"
+             st.rerun()
+             
+    if st.button("🔄 Start Demo Over", type="secondary", width='stretch'):
+        st.session_state.demo_qr_generated = False
+        st.session_state.demo_greeting = get_seasonal_demo()
+        st.rerun()
 
 # ============================================================================
 # Main Render Function
@@ -313,173 +327,33 @@ def render():
     # Initialize state
     init_demo_state()
     
-    # ========== HEADER ==========
+    # Header
     st.markdown("""
-    <div style="
-        text-align: center;
-        margin-bottom: 30px;
-        padding: 30px 20px;
-        background: linear-gradient(135deg, #f093fb 0%, #f5576c 50%, #4facfe 100%);
-        border-radius: 20px;
-        color: white;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.15);
-    ">
-        <h1 style="margin: 0; font-size: 2.5em;">✨ Try the Interactive Demo ✨</h1>
-        <p style="font-size: 1.2em; margin: 15px 0 0 0; opacity: 0.95;">
-            Create a sample greeting in under 60 seconds
-        </p>
-        <div style="margin-top: 20px;">
-            <span style="
-                background: rgba(255,255,255,0.2);
-                padding: 8px 15px;
-                border-radius: 20px;
-                margin: 0 5px;
-                font-size: 0.9em;
-            ">✅ No signup required</span>
-            <span style="
-                background: rgba(255,255,255,0.2);
-                padding: 8px 15px;
-                border-radius: 20px;
-                margin: 0 5px;
-                font-size: 0.9em;
-            ">✅ Fully interactive</span>
-        </div>
+    <div style="text-align: center; margin-bottom: 30px;">
+        <h1>✨ interactive Demo</h1>
+        <p style="color: #666;">Create a sample greeting in 3 easy steps</p>
     </div>
     """, unsafe_allow_html=True)
     
-    # ========== MAIN CONTENT ==========
+    # Render steps
     if not st.session_state.demo_qr_generated:
-        # Show greeting preview and options
-        demo_col1, demo_col2 = st.columns([1, 1])
-        
-        with demo_col1:
-            st.markdown("### 📝 Sample Greeting")
-            display_greeting_preview(st.session_state.demo_greeting)
+        # Step 1
+        with st.container():
+            render_step_1_theme()
+            st.divider()
             
-            # Quick theme selector
-            st.markdown("##### Quick Theme Change")
-            new_theme = display_theme_selector(st.session_state.demo_greeting.theme, key_prefix="quick")
-            if new_theme != st.session_state.demo_greeting.theme:
-                st.session_state.demo_greeting = DemoGreeting(
-                    from_name=st.session_state.demo_greeting.from_name,
-                    to_name=st.session_state.demo_greeting.to_name,
-                    occasion=st.session_state.demo_greeting.occasion,
-                    message=st.session_state.demo_greeting.message,
-                    theme=new_theme,
-                    animation=ANIMATION_PRESETS.get(new_theme, ["MaterializeIn"])[0]
-                )
-                st.rerun()
-        
-        with demo_col2:
-            st.markdown("### 🎯 Actions")
+        # Step 2
+        with st.container():
+            render_step_2_preview()
+            st.divider()
             
-            st.markdown("""
-            <div style="
-                background: linear-gradient(135deg, #e0f7fa 0%, #b2ebf2 100%);
-                padding: 20px;
-                border-radius: 15px;
-                margin-bottom: 20px;
-            ">
-                <h4 style="margin: 0 0 10px 0; color: #00838f;">🚀 Quick Start</h4>
-                <p style="color: #006064; margin: 0;">
-                    Click "Generate QR Code" to see your greeting come to life!
-                </p>
-            </div>
-            """, unsafe_allow_html=True)
+        # Step 3
+        with st.container():
+            render_step_3_generate()
             
-            # Generate button (primary CTA)
-            if st.button(
-                "✨ Generate QR Code",
-                key="generate_btn",
-                use_container_width=True,
-                type="primary"
-            ):
-                st.session_state.demo_qr_generated = True
-                st.rerun()
-            
-            st.markdown("")
-            
-            # Customization toggle
-            with st.expander("✏️ Customize This Demo", expanded=st.session_state.demo_customize_expanded):
-                custom_data = display_customization_panel(st.session_state.demo_greeting)
-                
-                col1, col2 = st.columns(2)
-                with col1:
-                    if st.button("✅ Apply Changes", use_container_width=True, type="primary"):
-                        st.session_state.demo_greeting = DemoGreeting(
-                            from_name=custom_data["from_name"],
-                            to_name=custom_data["to_name"],
-                            occasion=custom_data["occasion"],
-                            message=custom_data["message"],
-                            theme=custom_data["theme"],
-                            animation=custom_data["animation"]
-                        )
-                        st.rerun()
-                with col2:
-                    if st.button("🔄 Reset Default", use_container_width=True):
-                        st.session_state.demo_greeting = get_seasonal_demo()
-                        st.rerun()
-    
     else:
-        # ========== QR CODE GENERATED VIEW ==========
-        # Generate QR code
-        qr_image = generate_demo_qr_code(st.session_state.demo_greeting)
-        
-        # Display QR with mockup
-        display_qr_with_mobile_mockup(qr_image, st.session_state.demo_greeting)
-        
-        # ========== CONVERSION CTA ==========
-        st.markdown("---")
-        
-        st.markdown("""
-        <div style="
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            padding: 30px;
-            border-radius: 20px;
-            text-align: center;
-            color: white;
-            margin: 20px 0;
-            box-shadow: 0 10px 40px rgba(102, 126, 234, 0.3);
-        ">
-            <h2 style="margin: 0 0 15px 0;">🎉 Love what you created?</h2>
-            <p style="font-size: 1.1em; opacity: 0.9; margin-bottom: 20px;">
-                Now make your own personalized greeting with all the features!
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            if st.button(
-                "🎁 Create My Own Greeting",
-                key="convert_btn",
-                use_container_width=True,
-                type="primary"
-            ):
-                # Reset demo state and signal to go to create tab
-                st.session_state["from_demo"] = True
-                st.info("👆 Click the **Create Greeting** tab above to start creating your own personalized greeting!")
-        
-        # Back to edit option
-        st.markdown("")
-        col1, col2, col3 = st.columns([1, 1, 1])
-        with col2:
-            if st.button("← Edit This Demo", key="back_to_edit", use_container_width=True):
-                st.session_state.demo_qr_generated = False
-                st.rerun()
-    
-    # ========== FOOTER ==========
-    st.markdown("---")
-    st.markdown("""
-    <div style="text-align: center; color: #888; font-size: 0.9em; padding: 20px 0;">
-        <p style="margin: 5px 0;">
-            💡 <strong>Pro Tip:</strong> Messages work best under 300 characters for optimal QR code size
-        </p>
-        <p style="margin: 5px 0;">
-            Questions? Check out the <strong>About</strong> tab for more info
-        </p>
-    </div>
-    """, unsafe_allow_html=True)
+        # Result View
+        render_step_4_result()
 
 
 # ============================================================================

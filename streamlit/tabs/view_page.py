@@ -93,6 +93,6 @@ def render() -> None:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         st.caption("Create your own greeting QR code!")
-        if st.button("Create Greeting", type="secondary", use_container_width=True):
+        if st.button("Create Greeting", type="secondary", width='stretch'):
             st.query_params.clear()
             st.rerun()

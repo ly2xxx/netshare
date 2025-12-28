@@ -972,7 +972,7 @@ def render():
         display_greeting_preview(st.session_state.demo_greeting)
         
         # Customization button
-        if st.button("✏️ Customize Demo", key="customize_btn", use_container_width=True):
+        if st.button("✏️ Customize Demo", key="customize_btn", width='stretch'):
             st.session_state.demo_customize_expanded = not st.session_state.demo_customize_expanded
             st.rerun()
         
@@ -980,7 +980,7 @@ def render():
         if st.button(
             "✨ Generate QR Code",
             key="generate_btn",
-            use_container_width=True,
+            width='stretch',
             type="primary"
         ):
             st.session_state.demo_qr_generated = True
@@ -1004,7 +1004,7 @@ def render():
         if st.button(
             "Update QR Preview",
             key="update_preview_btn",
-            use_container_width=True,
+            width='stretch',
             type="secondary"
         ):
             st.session_state.demo_qr_generated = True
@@ -1035,7 +1035,7 @@ def render():
             if st.button(
                 "🎁 Create My Own Greeting",
                 key="convert_btn",
-                use_container_width=True,
+                width='stretch',
                 type="primary"
             ):
                 # Log conversion event (placeholder for analytics)

@@ -7,6 +7,7 @@ import streamlit as st
 from greeting_formats import create_holiday_greeting, encode_greeting_to_url
 from qr.generator import generate_qr_code
 from qr.display import display_qr_with_protection
+from config import THEME_COLORS
 
 
 def render() -> None:
@@ -70,5 +71,15 @@ def render() -> None:
                 # Use URL encoding for QR code
                 greeting_url = encode_greeting_to_url(greeting)
                 visible_msg = example.get('visible_message', None)
-                qr_img = generate_qr_code(greeting_url, theme=example['theme'], visible_message=visible_msg)
+
+                # Get theme colors for colorized QR code
+                theme_colors = THEME_COLORS.get(example['theme'], THEME_COLORS['general'])
+
+                qr_img = generate_qr_code(
+                    greeting_url,
+                    theme=example['theme'],
+                    visible_message=visible_msg,
+                    module_color=theme_colors['module'],
+                    position_ring_color=theme_colors['ring']
+                )
                 display_qr_with_protection(qr_img, caption="QR Code", width=None)

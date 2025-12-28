@@ -11,6 +11,9 @@ from tabs.components import (
     render_qr_generation_flow
 )
 from utils.file_utils import get_available_gifs
+from config import THEME_ICONS
+from qr.display import display_greeting_letter
+from datetime import datetime
 
 
 def render() -> None:
@@ -114,104 +117,199 @@ def render() -> None:
     st.divider()
 
     # =========================================================================
-    # Step 2: Greeting Details
+    # Step 2: Preview & Personalize (matching demo_tab layout)
     # =========================================================================
-    st.markdown("### Step 2: Enter Your Greeting Details")
-    st.info("💡 **Tip:** Fill in who the greeting is from, who it's for, and your personalized message!")
+    st.markdown("### Step 2: Preview & Personalize")
+    st.info("💡 **Tip:** This is how your greeting will look. You can edit the details below!")
 
-    with st.form("greeting_form"):
-        from_name = st.text_input(
-            "From (Your Name)",
-            placeholder="Alice",
-            help="Who is sending this greeting?",
-            key="greeting_from_name"
+    # Initialize session state for greeting fields with sample data
+    if 'create_from_name' not in st.session_state:
+        st.session_state.create_from_name = "Your Name"
+    if 'create_to_name' not in st.session_state:
+        st.session_state.create_to_name = "Friend's Name"
+    if 'create_message' not in st.session_state:
+        st.session_state.create_message = "Wishing you a wonderful holiday season filled with joy, laughter, and cherished moments with loved ones!"
+    if 'create_visible_message' not in st.session_state:
+        st.session_state.create_visible_message = ""
+    if 'create_all_sides' not in st.session_state:
+        st.session_state.create_all_sides = False
+
+    # Get theme emoji for preview
+    theme_emoji = THEME_ICONS.get(theme, "🎁")
+
+    # Live Greeting Card Preview (matching demo_tab style)
+    st.markdown(f"""
+<div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 20px; color: white; box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4); max-width: 600px; margin: 0 auto;">
+    <div style="text-align: center; margin-bottom: 20px;">
+        <div style="font-size: 3em; margin-bottom: 10px;">{theme_emoji}</div>
+    </div>
+    <div style="background: rgba(255,255,255,0.95); color: #333; padding: 25px; border-radius: 15px; position: relative;">
+        <p style="margin: 5px 0 0 0; font-weight: 600; font-size: 1.1em;">From: {st.session_state.create_from_name}</p>
+        <p style="margin: 5px 0 20px 0; font-weight: 600; font-size: 1.1em;">To: {st.session_state.create_to_name}</p>
+        <p style="font-family: Georgia, serif; font-size: 1.15em; line-height: 1.6; color: #444; font-style: italic; margin: 0;">"{st.session_state.create_message}"</p>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+    st.markdown("<br>", unsafe_allow_html=True)
+
+    # Expandable edit section (matching demo_tab style)
+    with st.expander("✍️ **Edit Names & Message**", expanded=False):
+        col1, col2 = st.columns(2)
+        with col1:
+            new_from = st.text_input(
+                "From",
+                value=st.session_state.create_from_name,
+                key="edit_from_name",
+                placeholder="Your Name"
+            )
+            # Auto-update session state
+            if new_from != st.session_state.create_from_name:
+                st.session_state.create_from_name = new_from
+                st.rerun()
+        with col2:
+            new_to = st.text_input(
+                "To",
+                value=st.session_state.create_to_name,
+                key="edit_to_name",
+                placeholder="Friend's Name"
+            )
+            # Auto-update session state
+            if new_to != st.session_state.create_to_name:
+                st.session_state.create_to_name = new_to
+                st.rerun()
+
+        new_message = st.text_area(
+            "Message",
+            value=st.session_state.create_message,
+            height=100,
+            key="edit_message",
+            placeholder="Your personalized greeting message..."
         )
+        # Auto-update session state
+        if new_message != st.session_state.create_message:
+            st.session_state.create_message = new_message
+            st.rerun()
 
-        to_name = st.text_input(
-            "To (Recipient Name)",
-            placeholder="Bob",
-            help="Who will receive this greeting?",
-            key="greeting_to_name"
-        )
+        # Character counter
+        if new_message:
+            st.caption(f"Message length: {len(new_message)} characters")
 
-        message = st.text_area(
-            "Your Message",
-            placeholder="Merry Christmas! Wishing you joy and happiness this season...",
-            height=150,
-            help="Your personalized greeting message",
-            key="greeting_message"
-        )
-
+    # QR Code options section (keeping existing features)
+    with st.expander("🎨 **QR Code Options**", expanded=False):
         visible_message = st.text_input(
             "Visible Message (Optional)",
+            value=st.session_state.create_visible_message,
             placeholder="Scan me!",
-            help="Short text to display below the QR code image",
-            key="greeting_visible_message"
+            help="Short text to display around the QR code image",
+            key="edit_visible_message"
         )
 
         all_sides = st.checkbox(
             "Add message to all 4 sides",
-            value=False,
+            value=st.session_state.create_all_sides,
             help="Display the visible message on top, bottom, left, and right of the QR code",
-            key="greeting_all_sides"
+            key="edit_all_sides"
         )
 
-        # Character counter
-        if message:
-            st.caption(f"Message length: {len(message)} characters")
-
-        generate_btn = st.form_submit_button("Generate QR Code", icon=":material/qr_code_2:", type="primary", width='stretch')
+        # Update session state when changed
+        if visible_message != st.session_state.create_visible_message:
+            st.session_state.create_visible_message = visible_message
+        if all_sides != st.session_state.create_all_sides:
+            st.session_state.create_all_sides = all_sides
 
     st.divider()
 
     # =========================================================================
     # Step 3: Generate & Preview
     # =========================================================================
-    st.markdown("### Step 3: QR Code Preview")
+    st.markdown("### Step 3: Create Magic")
+    st.info("💡 **Tip:** Ready? Click below to generate your unique greeting QR code!")
+
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        generate_btn = st.button(
+            "✨ Generate QR Code",
+            type="primary",
+            key="create_tab_generate_btn",
+            icon=":material/qr_code_2:"
+        )
 
     if generate_btn:
+        # Get values from session state
+        from_name = st.session_state.create_from_name
+        to_name = st.session_state.create_to_name
+        message = st.session_state.create_message
+        visible_message = st.session_state.create_visible_message
+        all_sides = st.session_state.create_all_sides
+
         # Validate inputs
         if not from_name or not to_name or not message:
             st.error("Please fill in all required fields (From, To, and Message)")
-        elif selected_gif_option == "(Enter custom URL...)":
-            # Handle custom URL cases
-            if not st.session_state.custom_video_url:
-                # No URL entered - generate without background
+        # elif from_name == "Your Name" or to_name == "Friend's Name":
+        #     st.warning("⚠️ Please personalize the From and To names before generating!")
+        else:
+            # Determine background and warning text
+            warning_text = None
+            background = selected_gif
+
+            if selected_gif_option == "(Enter custom URL...)":
+                if not st.session_state.custom_video_url:
+                    warning_text = "⚠️ No video URL entered. Generating QR code without background animation."
+                    background = ""
+                elif st.session_state.custom_url_validation_status != 'valid':
+                    st.error(f"❌ Invalid video URL: {st.session_state.custom_url_validation_message}")
+                    st.info("💡 Please enter a valid YouTube or video URL, or select a different background option.")
+                    st.stop()
+
+            # Show success message
+            st.success("🎉 **Success!** Your greeting QR code is ready.")
+
+            # Show warning if applicable
+            if warning_text:
+                st.warning(warning_text)
+
+            # Two-column layout matching demo_tab
+            qr_col, preview_col = st.columns([1, 1])
+
+            with qr_col:
+                st.markdown("#### 📱 Your Unique QR")
+                # Generate and display QR code
                 render_qr_generation_flow(
                     from_name=from_name,
                     to_name=to_name,
                     message=message,
                     theme=theme,
-                    background=selected_gif,
-                    visible_message=visible_message,
-                    all_sides=all_sides,
-                    warning_text="⚠️ No video URL entered. Generating QR code without background animation."
-                )
-            elif st.session_state.custom_url_validation_status != 'valid':
-                # Invalid URL
-                st.error(f"❌ Invalid video URL: {st.session_state.custom_url_validation_message}")
-                st.info("💡 Please enter a valid YouTube or video URL, or select a different background option.")
-            else:
-                # Valid URL - proceed normally
-                render_qr_generation_flow(
-                    from_name=from_name,
-                    to_name=to_name,
-                    message=message,
-                    theme=theme,
-                    background=selected_gif,
+                    background=background,
                     visible_message=visible_message,
                     all_sides=all_sides
                 )
-        else:
-            # Normal flow (local file or no background)
-            render_qr_generation_flow(
-                from_name=from_name,
-                to_name=to_name,
-                message=message,
-                theme=theme,
-                background=selected_gif,
-                visible_message=visible_message,
-                all_sides=all_sides
-            )
-    else:
-        st.info("💡 **Tip:** Click 'Generate QR Code' above to create your personalized QR code!")
+
+            with preview_col:
+                st.markdown("#### 👀 Scan Preview")
+                st.caption("This is exactly how your greeting will appear when scanned:")
+                # Create greeting dict matching what display_greeting_letter expects
+                preview_greeting = {
+                    'to': to_name,
+                    'from': from_name,
+                    'message': message,
+                    'theme': theme,
+                    'background': background,
+                    'created': datetime.now().strftime('%Y-%m-%d')
+                }
+                # Use the same display function as scan_tab
+                display_greeting_letter(preview_greeting)
+
+            st.markdown("---")
+
+            # Start Over button
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                if st.button("🔄 Create Another Greeting", type="secondary", key="create_tab_start_over"):
+                    # Reset session state
+                    st.session_state.create_from_name = "Your Name"
+                    st.session_state.create_to_name = "Friend's Name"
+                    st.session_state.create_message = "Wishing you a wonderful holiday season filled with joy, laughter, and cherished moments with loved ones!"
+                    st.session_state.create_visible_message = ""
+                    st.session_state.create_all_sides = False
+                    st.rerun()

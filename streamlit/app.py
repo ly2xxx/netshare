@@ -11,7 +11,7 @@ import streamlit.components.v1 as components
 from config import THEME_ICONS, PAGE_CONFIG, CSS_STYLES
 
 # Import tab modules
-from tabs import create_tab, scan_tab, examples_tab, batch_tab, about_tab, view_page
+from tabs import create_tab, scan_tab, examples_tab, batch_tab, about_tab, view_page, demo_tab
 
 # Set page configuration
 st.set_page_config(**PAGE_CONFIG)
@@ -66,10 +66,11 @@ def main():
         show_batch = st.checkbox("Show Batch Tab", value=False, help="Enable batch QR code generation from Excel")
 
     # Map tab names to indices (depends on whether batch tab is shown)
+    # Demo tab is first for visibility to new users
     if show_batch:
-        tab_map = {"create": 0, "scan": 1, "examples": 2, "batch": 3, "about": 4}
+        tab_map = {"demo": 0, "create": 1, "scan": 2, "examples": 3, "batch": 4, "about": 5}
     else:
-        tab_map = {"create": 0, "scan": 1, "examples": 2, "about": 3}
+        tab_map = {"demo": 0, "create": 1, "scan": 2, "examples": 3, "about": 4}
     tab_index = tab_map.get(tab_param, 0)
 
     # Inject JavaScript to click the correct tab (only if not the first tab)
@@ -98,8 +99,12 @@ def main():
         """, height=0)
 
     # Main tabs (conditionally include batch tab)
+    # Demo tab is first for visibility to new users
     if show_batch:
-        tab1, tab2, tab3, tab4, tab5 = st.tabs(["Create Greeting", "Scan QR Code", "Examples", "Batch", "About"])
+        tab0, tab1, tab2, tab3, tab4, tab5 = st.tabs(["🎁 Try Demo", "Create Greeting", "Scan QR Code", "Examples", "Batch", "About"])
+
+        with tab0:
+            demo_tab.render()
 
         with tab1:
             create_tab.render()
@@ -116,7 +121,10 @@ def main():
         with tab5:
             about_tab.render()
     else:
-        tab1, tab2, tab3, tab4 = st.tabs(["Create Greeting", "Scan QR Code", "Examples", "About"])
+        tab0, tab1, tab2, tab3, tab4 = st.tabs(["🎁 Try Demo", "Create Greeting", "Scan QR Code", "Examples", "About"])
+
+        with tab0:
+            demo_tab.render()
 
         with tab1:
             create_tab.render()

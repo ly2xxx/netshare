@@ -13,9 +13,8 @@ import io
 
 # Import utilities
 from utils.demo_data import (
-    DemoGreeting, 
-    get_seasonal_demo, 
-    OCCASION_PRESETS,
+    DemoGreeting,
+    get_seasonal_demo,
     ANIMATION_PRESETS
 )
 from config import THEME_COLORS, THEME_ICONS
@@ -118,7 +117,6 @@ def display_greeting_card_preview(greeting: DemoGreeting):
 <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 30px; border-radius: 20px; color: white; box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4); max-width: 600px; margin: 0 auto;">
     <div style="text-align: center; margin-bottom: 20px;">
         <div style="font-size: 3em; margin-bottom: 10px;">{theme_emoji}</div>
-        <div style="background: rgba(255,255,255,0.2); display: inline-block; padding: 5px 20px; border-radius: 20px; font-weight: bold;">{greeting.occasion}</div>
     </div>
     <div style="background: rgba(255,255,255,0.95); color: #333; padding: 25px; border-radius: 15px; position: relative;">
         <p style="margin: 5px 0 0 0; font-weight: 600; font-size: 1.1em;">From: {greeting.from_name}</p>
@@ -185,10 +183,9 @@ def render_step_2_preview():
         col1, col2 = st.columns(2)
         with col1:
             new_from = st.text_input("From", value=greeting.from_name, key="step2_from")
-            new_to = st.text_input("To", value=greeting.to_name, key="step2_to")
         with col2:
-            new_occasion = st.text_input("Occasion", value=greeting.occasion, key="step2_occasion")
-        
+            new_to = st.text_input("To", value=greeting.to_name, key="step2_to")
+
         new_message = st.text_area("Message", value=greeting.message, height=100, key="step2_msg")
 
         # Apply changes button
@@ -202,7 +199,6 @@ def render_step_2_preview():
 
             st.session_state.demo_greeting.from_name = new_from
             st.session_state.demo_greeting.to_name = new_to
-            st.session_state.demo_greeting.occasion = new_occasion
             st.session_state.demo_greeting.message = new_message
             st.rerun()
 
@@ -225,11 +221,12 @@ def render_step_3_generate():
 
 def render_step_4_result():
     """Render Step 4: The Result"""
-    
+
     greeting = st.session_state.demo_greeting
-    
-    st.success("🎉 **Success!** Your interactive greeting is ready.")
-    
+
+    st.success("🎉 **Success!** Your demo greeting preview is ready.")
+    st.info("ℹ️ **Demo Mode**: This is a preview only. Use the [**Create Greeting**](?tab=create) tab for full functionality and downloads.", icon="ℹ️")
+
     col1, col2 = st.columns([1, 1])
     
     with col1:
@@ -238,18 +235,22 @@ def render_step_4_result():
         qr_img = generate_demo_qr_code(greeting)
         st.image(qr_img, width='stretch', caption="Scan me!")
         
-        # Download
+        # Download (disabled for demo)
         img_byte_arr = io.BytesIO()
         qr_img.save(img_byte_arr, format='PNG')
         img_byte_arr.seek(0)
-        
+
         st.download_button(
-            "⬇️ Download Image",
+            "⬇️ Download Image (Demo Only)",
             data=img_byte_arr.getvalue(),
             file_name="my_greeting_qr.png",
             mime="image/png",
-            width='stretch'
+            width='stretch',
+            disabled=True,
+            help="Download is disabled in demo mode. Use the 'Create Greeting' tab for full functionality."
         )
+
+        st.caption("💡 This is a preview only. Visit the [**Create Greeting**](?tab=create) tab to download your personalized QR code.")
 
     with col2:
         st.markdown("#### 👀 Scan Preview")
@@ -267,14 +268,14 @@ def render_step_4_result():
 """, unsafe_allow_html=True)
         
     st.markdown("---")
-    
+
     st.markdown("""
     <div style="text-align: center; margin-bottom: 20px;">
         <h3>🚀 Ready to make it real?</h3>
-        <p>Create a fully customizable greeting with your own photos, videos, and more!</p>
+        <p>This demo shows the concept. For full functionality with downloads, custom backgrounds, and more, create your own greeting!</p>
     </div>
     """, unsafe_allow_html=True)
-    
+
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         if st.button("🎁 Create My Own Greeting", type="primary", width='stretch'):
@@ -282,11 +283,13 @@ def render_step_4_result():
              # set query param to switch tab
              st.query_params["tab"] = "create"
              st.rerun()
-             
-    if st.button("🔄 Start Demo Over", type="secondary", width='stretch'):
-        st.session_state.demo_qr_generated = False
-        st.session_state.demo_greeting = get_seasonal_demo()
-        st.rerun()
+
+    col1, col2, col3 = st.columns([1, 2, 1])
+    with col2:
+        if st.button("🔄 Start Demo Over", type="secondary", width='stretch'):
+            st.session_state.demo_qr_generated = False
+            st.session_state.demo_greeting = get_seasonal_demo()
+            st.rerun()
 
 # ============================================================================
 # Main Render Function
@@ -298,11 +301,14 @@ def render():
     # Initialize state
     init_demo_state()
     
-    # Header
+    # Header with demo notice
     st.markdown("""
     <div style="text-align: center; margin-bottom: 30px;">
-        <h1>✨ interactive Demo</h1>
+        <h1>✨ Interactive Demo</h1>
         <p style="color: #666;">Create a sample greeting in 3 easy steps</p>
+        <div style="background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%); color: white; padding: 12px 20px; border-radius: 10px; margin: 15px auto; max-width: 600px; font-weight: 500;">
+            ℹ️ This is a demo to showcase the concept. For full functionality including downloads, please use the <strong><a href="?tab=create" style="color: white; text-decoration: underline;">Create Greeting</a></strong> tab.
+        </div>
     </div>
     """, unsafe_allow_html=True)
     

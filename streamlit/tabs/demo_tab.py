@@ -278,11 +278,25 @@ def render_step_4_result():
 
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if st.button("🎁 Create My Own Greeting", type="primary", width='stretch'):
-             st.session_state["from_demo"] = True
-             # set query param to switch tab
-             st.query_params["tab"] = "create"
-             st.rerun()
+        # Use markdown styled as button to navigate like the hyperlinks do
+        st.markdown("""
+        <a href="?tab=create" style="
+            display: inline-block;
+            width: 100%;
+            padding: 0.5rem 1rem;
+            background-color: #ff4b4b;
+            color: white;
+            text-align: center;
+            text-decoration: none;
+            border-radius: 0.5rem;
+            font-weight: 600;
+            font-size: 1rem;
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        " onmouseover="this.style.backgroundColor='#ff2b2b'" onmouseout="this.style.backgroundColor='#ff4b4b'">
+            🎁 Create My Own Greeting
+        </a>
+        """, unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:

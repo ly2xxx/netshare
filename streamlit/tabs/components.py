@@ -45,6 +45,7 @@ def render_theme_selector() -> str:
         ("champagne", "🥂 Champagne"),
         ("hearts", "❤️ Hearts"),
         ("farewell", "👋 Farewell"),
+        ("burn_after_read", "🔥 Burn After Read"),
         ("general", "⊞ General (No Icon)")
     ]
 

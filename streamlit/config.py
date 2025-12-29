@@ -13,6 +13,7 @@ THEME_ICONS = {
     "champagne": "🥂",
     "hearts": "❤️",
     "farewell": "👋",
+    "burn_after_read": "🔥",  # Mission Impossible spy theme
     "general": None  # No icon for general theme
 }
 
@@ -26,6 +27,7 @@ THEME_ANIMATIONS = {
     "champagne": "RadialRipple",
     "hearts": "FadeInCenterOut",
     "farewell": "FadeInTopDown",
+    "burn_after_read": "RadialRipple",  # Burning fuse effect
     "general": "MaterializeIn"
 }
 
@@ -39,6 +41,7 @@ THEME_COLORS = {
     "champagne": {"module": "#FFD700", "ring": "#FF6F00"},
     "hearts": {"module": "#E91E63", "ring": "#D81B60"},
     "farewell": {"module": "#1976D2", "ring": "#1565C0"},
+    "burn_after_read": {"module": "#FF4500", "ring": "#1A1A1A"},  # Mission Impossible: flame orange + near-black
     "general": {"module": "#1f77b4", "ring": "#ff7f0e"}
 }
 

@@ -66,12 +66,17 @@ def render() -> None:
         st.markdown("""
         ### 🔐 Secret in Transit
 
-        **Your message stays private until revealed.**
+        **Personal, intimate, and AI-safe.**
 
-        Unlike public social media posts, your greeting is encoded within the QR pattern itself.
-        Only the recipient who scans it can see your heartfelt message.
+        Your greeting is encoded within the QR pattern itself—mathematically
+        opaque to AI systems and invisible until scanned.
 
-        It's like a digital sealed envelope — personal, intimate, and special.
+        ✅ **No email provider snooping**
+        ✅ **No algorithm analysis**
+        ✅ **No unauthorized LLM training**
+        ✅ **Only the recipient sees your message**
+
+        Send your love without leaving a digital footprint! ❤️🛡️
         """)
 
     with col3:
@@ -109,7 +114,27 @@ def render() -> None:
     - Compact JSON format minimizes QR code size
     - Supports messages up to ~500 characters comfortably
     - Built with Streamlit and netshare
+    """)
 
+    st.markdown("---")
+
+    st.markdown("""
+    ### 🤖 Privacy in the GenAI Era
+
+    **Your message stays hidden from AI systems.**
+
+    Unlike text shared via email, SMS, or social media, QR-encoded messages are
+    **mathematically opaque** to automated analysis:
+
+    - **No AI Scanning**: Message format prevents automated text extraction
+    - **No Training Data**: Your personal messages won't train LLMs (ChatGPT, Gemini, Claude, etc.)
+    - **No Algorithm Analysis**: Email providers and platforms can't read or analyze your content
+    - **No Cloud Indexing**: Message exists only in the QR pattern, not on servers
+
+    Your greeting is encoded, not transmitted. Protected by design. 🛡️
+    """)
+
+    st.write("""
     ### Powered By
     - **netshare** - Network sharing and QR code utilities
     - **Streamlit** - Interactive web interface

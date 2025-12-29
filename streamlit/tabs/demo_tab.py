@@ -227,6 +227,13 @@ def render_step_4_result():
     st.success("🎉 **Success!** Your demo greeting preview is ready.")
     st.info("ℹ️ **Demo Mode**: This is a preview only. Use the [**Create Greeting**](?tab=create) tab for full functionality and downloads.", icon="ℹ️")
 
+    # Privacy benefits highlight
+    st.info("""
+        🔒 **Privacy Built In**: Your message is encoded directly into the QR pattern.
+        It's opaque to AI training systems and invisible until scanned—no email provider snooping,
+        no algorithm analysis, no unauthorized LLM training. Complete privacy. 🛡️
+    """, icon="🔒")
+
     col1, col2 = st.columns([1, 1])
     
     with col1:

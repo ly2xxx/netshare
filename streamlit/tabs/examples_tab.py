@@ -46,6 +46,15 @@ def render() -> None:
             "theme": "farewell",
             "message": "It's been an amazing journey working with you all! Thank you for the memories, the laughs, and the lessons. Let's stay in touch!",
             "visible_message": "Scan to read my farewell note"
+        },
+        {
+            "title": "🔥 Mission Impossible - Self-Destructing Message",
+            "from": "IMF Agent",
+            "to": "Field Operative",
+            "theme": "burn_after_read",
+            "message": "Your mission: Rendezvous at Café Milano, 1800 hours. Bring the package. Delete this message after reading. No digital trail - no email interception, no AI monitoring, no server logs. For your eyes only. 🕵️",
+            "visible_message": "DELETE ME",
+            "all_sides": True
         }
     ]
 
@@ -72,6 +81,9 @@ def render() -> None:
                 greeting_url = encode_greeting_to_url(greeting)
                 visible_msg = example.get('visible_message', None)
 
+                # Get all_sides parameter from example (defaults to False)
+                all_sides = example.get('all_sides', False)
+
                 # Get theme colors for colorized QR code
                 theme_colors = THEME_COLORS.get(example['theme'], THEME_COLORS['general'])
 
@@ -79,6 +91,7 @@ def render() -> None:
                     greeting_url,
                     theme=example['theme'],
                     visible_message=visible_msg,
+                    all_sides=all_sides,
                     module_color=theme_colors['module'],
                     position_ring_color=theme_colors['ring']
                 )

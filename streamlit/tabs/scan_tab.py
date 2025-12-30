@@ -15,6 +15,12 @@ except ImportError as e:
     CV2_AVAILABLE = False
     CV2_IMPORT_ERROR = str(e)
 
+try:
+    from pyzbar.pyzbar import decode as pyzbar_decode
+    PYZBAR_AVAILABLE = True
+except ImportError:
+    PYZBAR_AVAILABLE = False
+
 from greeting_formats import (
     parse_greeting,
     format_greeting_display,
@@ -88,19 +94,32 @@ def render() -> None:
 
             # Decode QR code
             try:
-                if not CV2_AVAILABLE:
-                    raise ImportError(f"OpenCV not available: {CV2_IMPORT_ERROR}")
+                decoded_data = None
+                
+                # Check for pyzbar first (better detection rate)
+                if PYZBAR_AVAILABLE:
+                    try:
+                        decoded_objects = pyzbar_decode(image)
+                        if decoded_objects:
+                            decoded_data = decoded_objects[0].data.decode('utf-8')
+                    except Exception as e:
+                        print(f"Pyzbar scan error: {e}")
+                
+                # Fallback to OpenCV if pyzbar failed or not available
+                if not decoded_data and CV2_AVAILABLE:
+                    # Use OpenCV for decoding
+                    # Convert PIL Image to BGR numpy array
+                    image_array = np.array(image.convert('RGB'))
+                    image_array = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
 
-                # Use OpenCV for decoding (No pyzbar dependency)
-                # Convert PIL Image to BGR numpy array
-                image_array = np.array(image.convert('RGB'))
-                image_array = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
+                    detector = cv2.QRCodeDetector()
+                    data, bbox, _ = detector.detectAndDecode(image_array)
+                    
+                    if data:
+                        decoded_data = data
 
-                detector = cv2.QRCodeDetector()
-                data, bbox, _ = detector.detectAndDecode(image_array)
-
-                if data:
-                    qr_data = data
+                if decoded_data:
+                    qr_data = decoded_data
 
                     # Parse greeting (handles both URL and JSON formats)
                     greeting = parse_greeting(qr_data)
@@ -119,7 +138,13 @@ def render() -> None:
                             st.write("**Decoded data:**")
                             st.code(qr_data)
                 else:
-                    st.error("No QR code found in the image. Please upload a valid QR code image.")
+                    msg = "No QR code found in the image."
+                    if not PYZBAR_AVAILABLE and not CV2_AVAILABLE:
+                        msg += " (No scanning libraries available)"
+                    elif not PYZBAR_AVAILABLE:
+                        msg += " (Pyzbar not installed - it may handle this image better)"
+                        
+                    st.error(msg)
 
             except ImportError as e:
                 st.error(f"QR code scanning requires OpenCV system libraries.")

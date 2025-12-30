@@ -15,11 +15,15 @@ except ImportError as e:
     CV2_AVAILABLE = False
     CV2_IMPORT_ERROR = str(e)
 
+except ImportError as e:
+    CV2_AVAILABLE = False
+    CV2_IMPORT_ERROR = str(e)
+
 try:
-    from pyzbar.pyzbar import decode as pyzbar_decode
-    PYZBAR_AVAILABLE = True
+    import zxingcpp
+    ZXING_AVAILABLE = True
 except ImportError:
-    PYZBAR_AVAILABLE = False
+    ZXING_AVAILABLE = False
 
 from greeting_formats import (
     parse_greeting,
@@ -96,16 +100,18 @@ def render() -> None:
             try:
                 decoded_data = None
                 
-                # Check for pyzbar first (better detection rate)
-                if PYZBAR_AVAILABLE:
+                # Check for zxing-cpp first (better detection rate and no system deps)
+                if ZXING_AVAILABLE:
                     try:
-                        decoded_objects = pyzbar_decode(image)
-                        if decoded_objects:
-                            decoded_data = decoded_objects[0].data.decode('utf-8')
+                        # zxing-cpp works best with grayscale
+                        img_gray = image.convert('L')
+                        results = zxingcpp.read_barcodes(img_gray)
+                        if results:
+                            decoded_data = results[0].text
                     except Exception as e:
-                        print(f"Pyzbar scan error: {e}")
+                        print(f"ZXing-cpp scan error: {e}")
                 
-                # Fallback to OpenCV if pyzbar failed or not available
+                # Fallback to OpenCV if zxing-cpp failed or not available
                 if not decoded_data and CV2_AVAILABLE:
                     # Use OpenCV for decoding
                     # Convert PIL Image to BGR numpy array
@@ -139,10 +145,10 @@ def render() -> None:
                             st.code(qr_data)
                 else:
                     msg = "No QR code found in the image."
-                    if not PYZBAR_AVAILABLE and not CV2_AVAILABLE:
+                    if not ZXING_AVAILABLE and not CV2_AVAILABLE:
                         msg += " (No scanning libraries available)"
-                    elif not PYZBAR_AVAILABLE:
-                        msg += " (Pyzbar not installed - it may handle this image better)"
+                    elif not ZXING_AVAILABLE:
+                        msg += " (ZXing-cpp not installed - it may handle this image better)"
                         
                     st.error(msg)
 

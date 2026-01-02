@@ -56,8 +56,8 @@ def classify_background(background_str: str) -> str:
 
     # Check for Facebook URLs
     if 'facebook.com' in background_lower or 'fb.watch' in background_lower:
-        # Verify it's a video/reel URL
-        if any(pattern in background_lower for pattern in ['/reel/', '/videos/', '/watch', 'fb.watch']):
+        # Verify it's a video/reel/share URL
+        if any(pattern in background_lower for pattern in ['/reel/', '/videos/', '/watch', 'fb.watch', '/share/r/', '/share/v/']):
             return 'facebook'
 
     # Check for Instagram URLs
@@ -145,6 +145,7 @@ def convert_facebook_to_embed_url(facebook_url: str) -> Optional[str]:
 
     Supports:
     - https://www.facebook.com/reel/{ID}
+    - https://www.facebook.com/share/r/{ID}
     - https://www.facebook.com/{user}/videos/{ID}
     - https://www.facebook.com/watch?v={ID}
     - https://fb.watch/{SHORT_ID}
@@ -166,13 +167,23 @@ def convert_facebook_to_embed_url(facebook_url: str) -> Optional[str]:
     # Normalize URL
     url_lower = facebook_url.lower()
 
-    # Pattern 1: facebook.com/reel/{ID}
-    reel_match = re.search(r'facebook\.com/reel/(\d+)', facebook_url)
+    # Pattern 1a: facebook.com/reel/{ID} - now supports alphanumeric IDs
+    reel_match = re.search(r'facebook\.com/reel/([a-zA-Z0-9_-]+)', facebook_url)
     if reel_match:
         reel_id = reel_match.group(1)
         # Reconstruct canonical URL
         canonical_url = f"https://www.facebook.com/reel/{reel_id}"
         encoded_url = urllib.parse.quote(canonical_url, safe='')
+        return f"https://www.facebook.com/plugins/video.php?href={encoded_url}&show_text=false&width=560"
+
+    # Pattern 1b: facebook.com/share/r/{ID} or /share/v/{ID}
+    share_match = re.search(r'facebook\.com/share/(?:r|v)/([a-zA-Z0-9_-]+)', facebook_url)
+    if share_match:
+        share_id = share_match.group(1)
+        # Reconstruct canonical URL for plugin (it usually works better with the /reel/ or original link format)
+        # For share links, we usually want to follow the redirect, but the plugin might handle the share link directly.
+        # Let's try passing the share link directly first.
+        encoded_url = urllib.parse.quote(facebook_url, safe='')
         return f"https://www.facebook.com/plugins/video.php?href={encoded_url}&show_text=false&width=560"
 
     # Pattern 2: facebook.com/*/videos/{ID} or facebook.com/watch?v={ID}

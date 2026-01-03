@@ -11,6 +11,7 @@ import io
 import os
 from typing import Dict
 
+from i18n import get_text as _
 from config import THEME_ICONS
 from utils.url_utils import (
     is_web_url,
@@ -70,7 +71,7 @@ def display_qr_with_protection(qr_img: Image.Image, caption: str = "", width: in
         <img
             id="{unique_id}"
             src="{img_data_uri}"
-            alt="QR Code Preview"
+            alt="{_('display.qr_preview')}"
             style="{width_style} height: auto; display: block; margin: 0 auto;
                    -webkit-touch-callout: none; -webkit-user-select: none;
                    -moz-user-select: none; -ms-user-select: none; user-select: none;
@@ -188,7 +189,7 @@ def display_animated_qr(
     
     <div style="display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px;">
         <div id="{unique_id}-error" style="display:none; color: #d32f2f; background: #ffebee; padding: 10px; border-radius: 4px; margin-bottom: 10px; text-align: center;">
-             ⚠️ Unable to load QR animation library. <br>Please check your internet connection.
+             {_('display.error_animation')}
         </div>
         
         <qr-code id="{unique_id}"
@@ -296,7 +297,7 @@ def display_greeting_letter(greeting: Dict) -> None:
                     <div style="position: absolute; top: 10px; right: 10px; z-index: 5;">
                         <a href="{background_name}" target="_blank" rel="noopener noreferrer"
                            style="display: inline-block; padding: 10px 20px; background: #e4405f; color: white; text-decoration: none; border-radius: 8px; font-weight: bold;">
-                            📱 Open in Instagram
+                            {_('display.instagram_button')}
                         </a>
                     </div>'''
             elif bg_type == 'direct_video':
@@ -455,15 +456,15 @@ def display_greeting_letter(greeting: Dict) -> None:
         {container_opening_with_bg}
             {background_html}
             <div class="letter-header">
-                <div class="letter-to"><strong>To:</strong> {greeting.get('to', 'Friend')}</div>
-                <div class="letter-from"><strong>From:</strong> {greeting.get('from', 'Me')}</div>
+                <div class="letter-to"><strong>{_('display.to_label')}</strong> {greeting.get('to', 'Friend')}</div>
+                <div class="letter-from"><strong>{_('display.from_label')}</strong> {greeting.get('from', 'Me')}</div>
             </div>
             <div class="letter-body">
 {linkify_urls(greeting.get('message', ''))}
             </div>
             {icon_html}
             <div class="letter-footer">
-                Created: {greeting.get('created', '').split('T')[0]}
+                {_('display.created', date=greeting.get('created', '').split('T')[0])}
             </div>
         </div>
         """
@@ -474,15 +475,15 @@ def display_greeting_letter(greeting: Dict) -> None:
         html_content = f"""
         {container_opening}
             <div class="letter-header">
-                <div class="letter-to"><strong>To:</strong> {greeting.get('to', 'Friend')}</div>
-                <div class="letter-from"><strong>From:</strong> {greeting.get('from', 'Me')}</div>
+                <div class="letter-to"><strong>{_('display.to_label')}</strong> {greeting.get('to', 'Friend')}</div>
+                <div class="letter-from"><strong>{_('display.from_label')}</strong> {greeting.get('from', 'Me')}</div>
             </div>
             <div class="letter-body">
 {linkify_urls(greeting.get('message', ''))}
             </div>
             {icon_html}
             <div class="letter-footer">
-                Created: {greeting.get('created', '').split('T')[0]}
+                {_('display.created', date=greeting.get('created', '').split('T')[0])}
             </div>
         </div>
         """

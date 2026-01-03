@@ -6,6 +6,7 @@ Displays greeting in a clean, mobile-friendly format when scanned from QR code
 import streamlit as st
 from greeting_formats import decode_greeting_from_url
 from config import THEME_ICONS
+from i18n import get_text as _
 
 
 def render() -> None:
@@ -20,9 +21,9 @@ def render() -> None:
     greeting = decode_greeting_from_url(query_params)
 
     if not greeting:
-        st.error("Invalid or missing greeting data.")
-        st.write("Please scan a valid greeting QR code or go to the main page to create one.")
-        if st.button("Go to Home Page"):
+        st.error(_("view_page.invalid_data"))
+        st.write(_("view_page.scan_prompt"))
+        if st.button(_("common.buttons.go_home")):
             st.query_params.clear()
             st.rerun()
         return
@@ -84,7 +85,7 @@ def render() -> None:
     # From attribution (subtle)
     from_name = greeting.get("from", "")
     if from_name:
-        st.markdown(f'<div class="greeting-from">— From {from_name}</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="greeting-from">{_("view_page.from", name=from_name)}</div>', unsafe_allow_html=True)
 
     st.markdown('</div>', unsafe_allow_html=True)
 
@@ -92,7 +93,7 @@ def render() -> None:
     st.markdown("---")
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.caption("Create your own greeting QR code!")
-        if st.button("Create Greeting", type="secondary", width='stretch'):
+        st.caption(_("view_page.create_prompt"))
+        if st.button(_("common.buttons.create_greeting"), type="secondary", width='stretch'):
             st.query_params.clear()
             st.rerun()

@@ -8,6 +8,9 @@ import io
 from datetime import datetime
 from typing import Optional
 
+# Import internationalization
+from i18n import get_text as _
+
 from greeting_formats import (
     create_holiday_greeting,
     get_greeting_stats,
@@ -37,16 +40,16 @@ def render_theme_selector() -> str:
     """
     # Theme options with emoji indicators for the dropdown
     themes = [
-        ("snowflake", "❄️ Snowflake"),
-        ("fireworks", "🎆 Fireworks"),
-        ("lights", "✨ Lights"),
-        ("stars", "⭐ Stars"),
-        ("confetti", "🎉 Confetti"),
-        ("champagne", "🥂 Champagne"),
-        ("hearts", "❤️ Hearts"),
-        ("farewell", "👋 Farewell"),
-        ("burn_after_read", "🔥 Burn After Read"),
-        ("general", "⊞ General (No Icon)")
+        ("snowflake", _("components.themes.snowflake")),
+        ("fireworks", _("components.themes.fireworks")),
+        ("lights", _("components.themes.lights")),
+        ("stars", _("components.themes.stars")),
+        ("confetti", _("components.themes.confetti")),
+        ("champagne", _("components.themes.champagne")),
+        ("hearts", _("components.themes.hearts")),
+        ("farewell", _("components.themes.farewell")),
+        ("burn_after_read", _("components.themes.burn")),
+        ("general", _("components.themes.general"))
     ]
 
     # Create lookup dictionaries
@@ -65,10 +68,10 @@ def render_theme_selector() -> str:
 
     # Dropdown selector
     selected_label = st.selectbox(
-        "Theme",
+        _("components.theme.label"),
         options=theme_labels,
         index=current_index,
-        help="Choose a theme icon to embed in your QR code",
+        help=_("components.theme.help"),
         key="theme_dropdown"
     )
 
@@ -82,9 +85,9 @@ def render_theme_selector() -> str:
         if icon_preview:
             col1, col2, col3 = st.columns([1, 2, 1])
             with col2:
-                st.image(icon_preview, caption="Selected Icon Preview", width='content')
+                st.image(icon_preview, caption=_("components.theme_preview"), width='content')
     else:
-        st.caption("ℹ️ General theme: QR code will have no embedded icon")
+        st.caption(_("components.theme_general_info"))
 
     return selected_theme
 
@@ -103,7 +106,7 @@ def validate_custom_url_callback() -> None:
 
     if not is_web_url(url):
         st.session_state.custom_url_validation_status = 'invalid'
-        st.session_state.custom_url_validation_message = "⚠️ Invalid URL format. Must start with http:// or https://"
+        st.session_state.custom_url_validation_message = _("components.video_validation.invalid_format")
         return
 
     bg_type = classify_background(url)
@@ -112,50 +115,50 @@ def validate_custom_url_callback() -> None:
         embed_url = convert_youtube_to_embed_url(url)
         if embed_url:
             st.session_state.custom_url_validation_status = 'valid'
-            st.session_state.custom_url_validation_message = "✅ Valid YouTube URL"
+            st.session_state.custom_url_validation_message = _("components.video_validation.youtube_valid")
         else:
             st.session_state.custom_url_validation_status = 'invalid'
-            st.session_state.custom_url_validation_message = "⚠️ Invalid YouTube URL. Could not extract video ID."
+            st.session_state.custom_url_validation_message = _("components.video_validation.youtube_invalid")
 
     elif bg_type == 'google_drive':
         embed_url = convert_google_drive_to_embed_url(url)
         if embed_url:
             st.session_state.custom_url_validation_status = 'valid'
-            st.session_state.custom_url_validation_message = "✅ Valid Google Drive URL"
+            st.session_state.custom_url_validation_message = _("components.video_validation.gdrive_valid")
         else:
             st.session_state.custom_url_validation_status = 'invalid'
-            st.session_state.custom_url_validation_message = "⚠️ Invalid Google Drive URL. Could not extract file ID."
+            st.session_state.custom_url_validation_message = _("components.video_validation.gdrive_invalid")
 
     elif bg_type == 'facebook':
         embed_url = convert_facebook_to_embed_url(url)
         if embed_url:
             st.session_state.custom_url_validation_status = 'valid'
-            st.session_state.custom_url_validation_message = "✅ Valid Facebook video/reel URL"
+            st.session_state.custom_url_validation_message = _("components.video_validation.facebook_valid")
         else:
             st.session_state.custom_url_validation_status = 'invalid'
-            st.session_state.custom_url_validation_message = "⚠️ Invalid Facebook URL. Must be a video or reel URL."
+            st.session_state.custom_url_validation_message = _("components.video_validation.facebook_invalid")
 
     elif bg_type == 'instagram':
         embed_url = convert_instagram_to_embed_url(url)
         if embed_url:
             st.session_state.custom_url_validation_status = 'valid'
-            st.session_state.custom_url_validation_message = "⚠️ Instagram detected. Embedding may be limited - will provide 'Open in Instagram' option."
+            st.session_state.custom_url_validation_message = _("components.video_validation.instagram_warning")
         else:
             st.session_state.custom_url_validation_status = 'invalid'
-            st.session_state.custom_url_validation_message = "⚠️ Invalid Instagram URL. Must be a reel, post, or TV URL."
+            st.session_state.custom_url_validation_message = _("components.video_validation.instagram_invalid")
 
     elif bg_type == 'direct_video':
         st.session_state.custom_url_validation_status = 'valid'
         file_ext = url.split('.')[-1].upper()
-        st.session_state.custom_url_validation_message = f"✅ Valid video URL ({file_ext})"
+        st.session_state.custom_url_validation_message = _("components.video_validation.direct_valid", format=file_ext)
 
     elif bg_type == 'other_url':
         st.session_state.custom_url_validation_status = 'invalid'
-        st.session_state.custom_url_validation_message = "⚠️ Unsupported URL type. Use YouTube, Facebook, Instagram, Google Drive, or direct video links (.mp4, .webm, .mov, .avi, .m3u8)"
+        st.session_state.custom_url_validation_message = _("components.video_validation.unsupported")
 
     else:
         st.session_state.custom_url_validation_status = 'invalid'
-        st.session_state.custom_url_validation_message = "⚠️ Could not validate URL format"
+        st.session_state.custom_url_validation_message = _("components.video_validation.error")
 
 
 def render_qr_generation_flow(
@@ -258,11 +261,11 @@ def render_qr_generation_flow(
 
     # 6. Show statistics
     st.markdown('<div class="stats-box">', unsafe_allow_html=True)
-    st.write("**QR Code Statistics:**")
-    st.write(f"- Data size: {stats['byte_size']} bytes")
-    st.write(f"- QR Version: ~{stats['recommended_qr_version']}")
-    st.write(f"- Scannable: {'✅ Yes' if stats['fits_in_qr'] else '❌ Too large'}")
-    st.caption("📱 Scan with phone camera to open greeting directly!")
+    st.write(_("components.qr_stats.title"))
+    st.write(_("components.qr_stats.data_size", bytes=stats['byte_size']))
+    st.write(_("components.qr_stats.qr_version", version=stats['recommended_qr_version']))
+    st.write(_("components.qr_stats.scannable_yes") if stats['fits_in_qr'] else _("components.qr_stats.scannable_no"))
+    st.caption(_("components.qr_tip"))
     st.markdown('</div>', unsafe_allow_html=True)
 
     # 7. Provide download button with tracking
@@ -288,7 +291,7 @@ def render_qr_generation_flow(
 
     # Download button with tracking callback
     st.download_button(
-        label="📥 Download QR Code",
+        label=_("common.buttons.download"),
         data=byte_im,
         file_name=filename,
         mime="image/png",
@@ -299,4 +302,4 @@ def render_qr_generation_flow(
 
     # 8. Add Goodwill Payment Button
     st.markdown("---")
-    st.link_button("☕ Buy me a coffee (£1)", "https://www.paypal.com/ncp/payment/NUQG396UTFRMG", help="Support the project with a small donation")
+    st.link_button(_("common.buttons.buy_coffee"), "https://www.paypal.com/ncp/payment/NUQG396UTFRMG", help="Support the project with a small donation")

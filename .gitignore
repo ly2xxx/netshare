@@ -55,10 +55,11 @@ htmlcov/
 temp/
 tmp/
 
-# app generated images
+# app specific data
 *.png
 !streamlit/*/*.png
 !streamlit/packages.txt
+!streamlit/translations.json
 
 # PyPI build automation
 pypi-build/.env

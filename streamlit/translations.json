@@ -15,7 +15,6 @@
     "common.placeholders.your_name": "Your Name",
     "common.placeholders.friend_name": "Friend's Name",
     "common.placeholders.message": "Your personalized greeting message...",
-
     "_comment_app": "=== App.py - Main Application ===",
     "app.sidebar.title": "Holiday Greeting QR",
     "app.sidebar.tagline": "Create and share personalized holiday greetings via QR codes!",
@@ -34,7 +33,6 @@
     "app.tabs.examples": "Examples",
     "app.tabs.batch": "Batch",
     "app.tabs.about": "About",
-
     "_comment_create_tab": "=== Create Tab ===",
     "create_tab.header": "🎄 Create Holiday Greeting QR Code",
     "create_tab.subtitle": "*A greener, smarter way to say happy holidays.*",
@@ -76,7 +74,6 @@
     "create_tab.qr_section": "#### 📱 Your Unique QR",
     "create_tab.preview_section": "#### 👀 Scan Preview",
     "create_tab.preview_caption": "This is exactly how your greeting will appear when scanned:",
-
     "_comment_components": "=== Components ===",
     "components.theme.label": "Theme",
     "components.theme.help": "Choose a theme icon to embed in your QR code",
@@ -110,7 +107,6 @@
     "components.themes.farewell": "👋 Farewell",
     "components.themes.burn": "🔥 Burn After Read",
     "components.themes.general": "⊞ General (No Icon)",
-
     "_comment_demo_tab": "=== Demo Tab ===",
     "demo_tab.header": "✨ Interactive Demo",
     "demo_tab.subtitle": "Create a sample greeting in 3 easy steps",
@@ -139,7 +135,6 @@
     "demo_tab.ready_description": "This demo shows the concept. For full functionality with downloads, custom backgrounds, and more, create your own greeting!",
     "demo_tab.create_my_own": "🎁 Create My Own Greeting",
     "demo_tab.start_over": "🔄 Start Demo Over",
-
     "_comment_scan_tab": "=== Scan Tab ===",
     "scan_tab.header": "📱 Scan Greeting QR Code",
     "scan_tab.success": "🎉 Greeting received!",
@@ -162,7 +157,6 @@
     "scan_tab.alternative": "Alternatively, you can manually paste the QR code data below:",
     "scan_tab.create_own": "📝 Create Your Own Greeting",
     "scan_tab.url_decode_error": "Could not decode greeting from URL. Try uploading the QR code image instead.",
-
     "_comment_about_tab": "=== About Tab ===",
     "about_tab.header": "ℹ️ About",
     "about_tab.title": "## Holiday Greeting QR Code Generator",
@@ -214,7 +208,6 @@
     "about_tab.powered_by.streamlit": "- **Streamlit** - Interactive web interface",
     "about_tab.powered_by.qrcode": "- **qrcode** - QR code generation",
     "about_tab.powered_by.pillow": "- **Pillow** - Image processing",
-
     "_comment_examples_tab": "=== Examples Tab ===",
     "examples_tab.header": "📖 Examples",
     "examples_tab.intro": "Here are some example holiday greetings you can create:",
@@ -223,7 +216,6 @@
     "examples_tab.wedding.title": "💍 Wedding Save the Date",
     "examples_tab.farewell.title": "👋 Farewell to Colleagues",
     "examples_tab.mission.title": "🔥 Mission Impossible - Self-Destructing Message",
-
     "_comment_batch_tab": "=== Batch Tab ===",
     "batch_tab.header": "📦 Batch QR Code Generation",
     "batch_tab.description": "Generate multiple QR codes at once by uploading an Excel spreadsheet.",
@@ -254,7 +246,6 @@
     "batch_tab.download_all": "📥 Download All QR Codes (ZIP)",
     "batch_tab.error.row": "Row {idx}: {message}",
     "batch_tab.error.processing": "Error processing Excel file: {error}",
-
     "_comment_display": "=== QR Display Module ===",
     "display.qr_preview": "QR Code Preview",
     "display.error_animation": "⚠️ Unable to load QR animation library. Please check your internet connection.",
@@ -262,7 +253,6 @@
     "display.from_label": "From:",
     "display.created": "Created: {date}",
     "display.instagram_button": "📱 Open in Instagram",
-
     "_comment_view_page": "=== View Page ===",
     "view_page.invalid_data": "Invalid or missing greeting data.",
     "view_page.scan_prompt": "Please scan a valid greeting QR code or go to the main page to create one.",
@@ -285,7 +275,6 @@
     "common.placeholders.your_name": "您的名字",
     "common.placeholders.friend_name": "朋友的名字",
     "common.placeholders.message": "您的个性化问候消息...",
-
     "_comment_app": "=== App.py - 主应用 ===",
     "app.sidebar.title": "节日问候二维码",
     "app.sidebar.tagline": "创建并分享个性化节日问候二维码！",
@@ -296,7 +285,7 @@
     "app.sidebar.quick_tips.tip3": "🎨 选择与场合相配的主题",
     "app.sidebar.support.title": "### 支持",
     "app.sidebar.support.text": "如果您喜欢这个工具，请考虑支持它！",
-    "app.sidebar.batch_checkbox": "显示批量标签页",
+    "app.sidebar.batch_checkbox": "显示批量生成标签页",
     "app.sidebar.batch_help": "启用从Excel批量生成二维码",
     "app.tabs.demo": "🎁 试用演示",
     "app.tabs.create": "创建问候",
@@ -304,7 +293,6 @@
     "app.tabs.examples": "示例",
     "app.tabs.batch": "批量生成",
     "app.tabs.about": "关于",
-
     "_comment_create_tab": "=== 创建标签页 ===",
     "create_tab.header": "🎄 创建节日问候二维码",
     "create_tab.subtitle": "*更环保、更智能的节日问候方式。*",
@@ -346,7 +334,6 @@
     "create_tab.qr_section": "#### 📱 您的专属二维码",
     "create_tab.preview_section": "#### 👀 扫描预览",
     "create_tab.preview_caption": "这是扫描后问候的确切显示效果：",
-
     "_comment_components": "=== 组件 ===",
     "components.theme.label": "主题",
     "components.theme.help": "选择要嵌入二维码中的主题图标",
@@ -380,7 +367,6 @@
     "components.themes.farewell": "👋 告别",
     "components.themes.burn": "🔥 阅后即焚",
     "components.themes.general": "⊞ 通用（无图标）",
-
     "_comment_demo_tab": "=== 演示标签页 ===",
     "demo_tab.header": "✨ 互动演示",
     "demo_tab.subtitle": "通过3个简单步骤创建示例问候",
@@ -409,7 +395,6 @@
     "demo_tab.ready_description": "此演示展示了概念。要获得包括下载、自定义背景等在内的完整功能，请创建您自己的问候！",
     "demo_tab.create_my_own": "🎁 创建我自己的问候",
     "demo_tab.start_over": "🔄 重新开始演示",
-
     "_comment_scan_tab": "=== 扫描标签页 ===",
     "scan_tab.header": "📱 扫描问候二维码",
     "scan_tab.success": "🎉 已收到问候！",
@@ -432,7 +417,6 @@
     "scan_tab.alternative": "或者，您可以在下方手动粘贴二维码数据：",
     "scan_tab.create_own": "📝 创建您自己的问候",
     "scan_tab.url_decode_error": "无法从URL解码问候。请尝试上传二维码图像。",
-
     "_comment_about_tab": "=== 关于标签页 ===",
     "about_tab.header": "ℹ️ 关于",
     "about_tab.title": "## 节日问候二维码生成器",
@@ -484,7 +468,6 @@
     "about_tab.powered_by.streamlit": "- **Streamlit** - 交互式网页界面",
     "about_tab.powered_by.qrcode": "- **qrcode** - 二维码生成",
     "about_tab.powered_by.pillow": "- **Pillow** - 图像处理",
-
     "_comment_examples_tab": "=== 示例标签页 ===",
     "examples_tab.header": "📖 示例",
     "examples_tab.intro": "以下是您可以创建的一些示例节日问候：",
@@ -493,7 +476,6 @@
     "examples_tab.wedding.title": "💍 婚礼预告",
     "examples_tab.farewell.title": "👋 告别同事",
     "examples_tab.mission.title": "🔥 不可能的任务 - 自毁消息",
-
     "_comment_batch_tab": "=== 批量标签页 ===",
     "batch_tab.header": "📦 批量二维码生成",
     "batch_tab.description": "通过上传Excel电子表格一次生成多个二维码。",
@@ -524,7 +506,6 @@
     "batch_tab.download_all": "📥 下载所有二维码（ZIP）",
     "batch_tab.error.row": "行{idx}：{message}",
     "batch_tab.error.processing": "处理Excel文件时出错：{error}",
-
     "_comment_display": "=== 二维码显示模块 ===",
     "display.qr_preview": "二维码预览",
     "display.error_animation": "⚠️ 无法加载二维码动画库。请检查您的网络连接。",
@@ -532,7 +513,6 @@
     "display.from_label": "发件人：",
     "display.created": "创建于：{date}",
     "display.instagram_button": "📱 在Instagram中打开",
-
     "_comment_view_page": "=== 查看页面 ===",
     "view_page.invalid_data": "无效或缺失的问候数据。",
     "view_page.scan_prompt": "请扫描有效的问候二维码或转到主页创建一个。",

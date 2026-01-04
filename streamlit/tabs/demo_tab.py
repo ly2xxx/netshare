@@ -18,6 +18,7 @@ from utils.demo_data import (
     ANIMATION_PRESETS
 )
 from config import THEME_COLORS, THEME_ICONS
+from i18n import get_text as _
 
 # ============================================================================
 # State Management
@@ -119,8 +120,8 @@ def display_greeting_card_preview(greeting: DemoGreeting):
         <div style="font-size: 3em; margin-bottom: 10px;">{theme_emoji}</div>
     </div>
     <div style="background: rgba(255,255,255,0.95); color: #333; padding: 25px; border-radius: 15px; position: relative;">
-        <p style="margin: 5px 0 0 0; font-weight: 600; font-size: 1.1em;">From: {greeting.from_name}</p>
-        <p style="margin: 5px 0 20px 0; font-weight: 600; font-size: 1.1em;">To: {greeting.to_name}</p>
+        <p style="margin: 5px 0 0 0; font-weight: 600; font-size: 1.1em;">{_('common.labels.from')}: {greeting.from_name}</p>
+        <p style="margin: 5px 0 20px 0; font-weight: 600; font-size: 1.1em;">{_('common.labels.to')}: {greeting.to_name}</p>
         <p style="font-family: Georgia, serif; font-size: 1.15em; line-height: 1.6; color: #444; font-style: italic; margin: 0;">"{greeting.message}"</p>
     </div>
 </div>
@@ -143,7 +144,7 @@ def display_theme_buttons(current_theme: str):
             if st.button(
                 f"{emoji}",
                 key=f"step1_theme_{theme}",
-                help=f"Select {theme.title()} theme",
+                help=_("demo_tab.theme_selection_help", theme=theme.title()),
                 width='stretch',
                 type="primary" if is_selected else "secondary"
             ):
@@ -156,8 +157,8 @@ def render_step_1_theme():
     
     greeting = st.session_state.demo_greeting
     
-    st.markdown("### Step 1: Choose Your Vibe")
-    st.info("💡 **Tip:** Pick a theme that matches your occasion. The colors and animations will adapt automatically!")
+    st.markdown(_("demo_tab.step1.title"))
+    st.info(_("demo_tab.step1.tip"))
     
     new_theme = display_theme_buttons(greeting.theme)
     if new_theme != greeting.theme:
@@ -170,8 +171,8 @@ def render_step_2_preview():
     
     greeting = st.session_state.demo_greeting
     
-    st.markdown("### Step 2: Preview & Personalize")
-    st.info("💡 **Tip:** This is how your greeting will look. You can make quick edits below!")
+    st.markdown(_("demo_tab.step2.title"))
+    st.info(_("demo_tab.step2.tip"))
     
     # Preview
     display_greeting_card_preview(greeting)
@@ -179,22 +180,22 @@ def render_step_2_preview():
     st.markdown("<br>", unsafe_allow_html=True)
     
     # Inline customization using expander
-    with st.expander("✍️ **Edit Names & Message**", expanded=False):
+    with st.expander(_("demo_tab.edit.title"), expanded=False):
         col1, col2 = st.columns(2)
         with col1:
-            new_from = st.text_input("From", value=greeting.from_name, key="step2_from")
+            new_from = st.text_input(_("common.labels.from"), value=greeting.from_name, key="step2_from")
         with col2:
-            new_to = st.text_input("To", value=greeting.to_name, key="step2_to")
+            new_to = st.text_input(_("common.labels.to"), value=greeting.to_name, key="step2_to")
 
-        new_message = st.text_area("Message", value=greeting.message, height=100, key="step2_msg")
+        new_message = st.text_area(_("common.labels.message"), value=greeting.message, height=100, key="step2_msg")
 
         # Apply changes button
-        if st.button("Update Preview", type="secondary", width='stretch'):
+        if st.button(_("common.buttons.update_preview"), type="secondary", width='stretch'):
             # Validate message doesn't contain HTML (strip tags if found)
             if "<" in new_message and ">" in new_message:
                 import re
                 cleaned_message = re.sub(r'<[^>]+>', '', new_message)
-                st.warning("⚠️ HTML tags were detected and removed from your message. Please use plain text only.")
+                st.warning(_("demo_tab.warning.html_removed"))
                 new_message = cleaned_message
 
             st.session_state.demo_greeting.from_name = new_from
@@ -205,13 +206,13 @@ def render_step_2_preview():
 def render_step_3_generate():
     """Render Step 3: Generate Action"""
     
-    st.markdown("### Step 3: Create Magic")
-    st.info("💡 **Tip:** Ready? Click below to generate your unique greeting QR code!")
+    st.markdown(_("demo_tab.step3.title"))
+    st.info(_("demo_tab.step3.tip"))
     
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         if st.button(
-            "✨ Generate QR Code ✨",
+            _("demo_tab.generate_button"),
             type="primary",
             width='stretch',
             key="step3_generate_btn"
@@ -224,23 +225,19 @@ def render_step_4_result():
 
     greeting = st.session_state.demo_greeting
 
-    st.success("🎉 **Success!** Your demo greeting preview is ready.")
-    st.info("ℹ️ **Demo Mode**: This is a preview only. Use the [**Create Greeting**](?tab=create) tab for full functionality and downloads.", icon="ℹ️")
+    st.success(_("demo_tab.success"))
+    st.info(_("demo_tab.demo_mode_info"), icon="ℹ️")
 
     # Privacy benefits highlight
-    st.info("""
-        🔒 **Privacy Built In**: Your message is encoded directly into the QR pattern.
-        It's opaque to AI training systems and invisible until scanned—no email provider snooping,
-        no algorithm analysis, no unauthorized LLM training. Complete privacy. 🛡️
-    """, icon="🔒")
+    st.info(_("demo_tab.privacy_info"), icon="🔒")
 
     col1, col2 = st.columns([1, 1])
     
     with col1:
-        st.markdown("#### 📱 Your Unique QR")
+        st.markdown(_("demo_tab.qr_section"))
         # Generate QR
         qr_img = generate_demo_qr_code(greeting)
-        st.image(qr_img, width='stretch', caption="Scan me!")
+        st.image(qr_img, width='stretch', caption=_("demo_tab.scan_me"))
         
         # Download (disabled for demo)
         img_byte_arr = io.BytesIO()
@@ -248,45 +245,45 @@ def render_step_4_result():
         img_byte_arr.seek(0)
 
         st.download_button(
-            "⬇️ Download Image (Demo Only)",
+            _("demo_tab.download_button"),
             data=img_byte_arr.getvalue(),
             file_name="my_greeting_qr.png",
             mime="image/png",
             width='stretch',
             disabled=True,
-            help="Download is disabled in demo mode. Use the 'Create Greeting' tab for full functionality."
+            help=_("demo_tab.download_disabled")
         )
 
-        st.caption("💡 This is a preview only. Visit the [**Create Greeting**](?tab=create) tab to download your personalized QR code.")
+        st.caption(_("demo_tab.preview_only"))
 
     with col2:
-        st.markdown("#### 👀 Scan Preview")
+        st.markdown(_("demo_tab.preview_section"))
         # Mobile frame mockup simplified
         theme_emoji = THEME_ICONS.get(greeting.theme, "🎁")
         st.markdown(f"""
 <div style="border: 8px solid #333; border-radius: 30px; padding: 15px; background: white; max-width: 300px; margin: 0 auto; position: relative;">
     <div style="background: #f0f0f0; border-radius: 20px; padding: 15px; text-align: center; min-height: 350px;">
         <div style="font-size: 2.5em; margin-top: 20px;">{theme_emoji}</div>
-        <h4 style="margin: 10px 0; color: #667eea;">Thinking of You</h4>
+        <h4 style="margin: 10px 0; color: #667eea;">{_('demo_tab.preview_title')}</h4>
         <p style="font-size: 0.9em; color: #555;">"{greeting.message[:80]}..."</p>
-        <div style="margin-top: 20px; font-size: 0.8em; color: #888;">Tap to open</div>
+        <div style="margin-top: 20px; font-size: 0.8em; color: #888;">{_('demo_tab.preview_hint')}</div>
     </div>
 </div>
 """, unsafe_allow_html=True)
         
     st.markdown("---")
 
-    st.markdown("""
+    st.markdown(f"""
     <div style="text-align: center; margin-bottom: 20px;">
-        <h3>🚀 Ready to make it real?</h3>
-        <p>This demo shows the concept. For full functionality with downloads, custom backgrounds, and more, create your own greeting!</p>
+        <h3>{_('demo_tab.ready_prompt')}</h3>
+        <p>{_('demo_tab.ready_description')}</p>
     </div>
     """, unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         # Use markdown styled as button to navigate like the hyperlinks do
-        st.markdown("""
+        st.markdown(f"""
         <a href="?tab=create" style="
             display: inline-block;
             width: 100%;
@@ -301,13 +298,13 @@ def render_step_4_result():
             border: 1px solid transparent;
             transition: all 0.2s;
         " onmouseover="this.style.backgroundColor='#ff2b2b'" onmouseout="this.style.backgroundColor='#ff4b4b'">
-            🎁 Create My Own Greeting
+            {_('demo_tab.create_my_own')}
         </a>
         """, unsafe_allow_html=True)
 
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        if st.button("🔄 Start Demo Over", type="secondary", width='stretch'):
+        if st.button(_("demo_tab.start_over"), type="secondary", width='stretch'):
             st.session_state.demo_qr_generated = False
             st.session_state.demo_greeting = get_seasonal_demo()
             st.rerun()
@@ -323,12 +320,12 @@ def render():
     init_demo_state()
     
     # Header with demo notice
-    st.markdown("""
+    st.markdown(f"""
     <div style="text-align: center; margin-bottom: 30px;">
-        <h1>✨ Interactive Demo</h1>
-        <p style="color: #666;">Create a sample greeting in 3 easy steps</p>
+        <h1>{_('demo_tab.header')}</h1>
+        <p style="color: #666;">{_('demo_tab.subtitle')}</p>
         <div style="background: linear-gradient(135deg, #ffd89b 0%, #19547b 100%); color: white; padding: 12px 20px; border-radius: 10px; margin: 15px auto; max-width: 600px; font-weight: 500;">
-            ℹ️ This is a demo to showcase the concept. For full functionality including downloads, please use the <strong><a href="?tab=create" style="color: white; text-decoration: underline;">Create Greeting</a></strong> tab.
+            {_('demo_tab.info').replace('[**', '<strong><a href="?tab=create" style="color: white; text-decoration: underline;">').replace('**](?tab=create)', '</a></strong>')}
         </div>
     </div>
     """, unsafe_allow_html=True)

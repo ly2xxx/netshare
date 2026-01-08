@@ -48,6 +48,7 @@ def render_theme_selector() -> str:
         ("champagne", _("components.themes.champagne")),
         ("hearts", _("components.themes.hearts")),
         ("farewell", _("components.themes.farewell")),
+        ("valentine", _("components.themes.valentine")),
         ("burn_after_read", _("components.themes.burn")),
         ("general", _("components.themes.general"))
     ]

@@ -3,21 +3,19 @@ About Tab
 Information about the application and its features
 """
 
+
 import streamlit as st
 from utils.download_tracker import get_download_count
+from i18n import get_text as _
 
 
 def render() -> None:
     """About the application"""
-    st.markdown('<div class="main-header"><h1>ℹ️ About</h1></div>',
+    st.markdown(f'<div class="main-header"><h1>{_("about_tab.header")}</h1></div>',
                 unsafe_allow_html=True)
 
-    st.write("""
-    ## Holiday Greeting QR Code Generator
-
-    This application allows you to create personalized holiday greetings encoded in QR codes.
-    Share your messages in a unique and modern way!
-    """)
+    st.write(_("about_tab.title"))
+    st.write(_("about_tab.description"))
 
     st.markdown("---")
     # Video player in centered column
@@ -28,11 +26,11 @@ def render() -> None:
     st.markdown("<div style='margin-bottom: 1.5rem;'></div>", unsafe_allow_html=True)
 
     # Video section with styled heading
-    st.markdown("""
+    st.markdown(f"""
 <div style="text-align: center; margin: 2rem 0 1rem 0;">
-    <h3 style="color: #333; margin-bottom: 0.5rem;">See It In Action</h3>
+    <h3 style="color: #333; margin-bottom: 0.5rem;">{_('about_tab.video_section')}</h3>
     <p style="color: #666; margin-bottom: 1.5rem; font-size: 1rem;">
-        Watch a quick demo of how easy it is to create and share personalized greeting QR codes.
+        {_('about_tab.video_description')}
     </p>
 </div>
 """, unsafe_allow_html=True)
@@ -46,142 +44,120 @@ def render() -> None:
 
     # Core positioning messages
     st.markdown("---")
-    st.subheader("Why Choose QR Greetings?")
+    st.subheader(_("about_tab.why_choose"))
 
     col1, col2, col3 = st.columns(3)
 
     with col1:
-        st.markdown("""
-        ### 🌱 Environment Friendly
+        st.markdown(f"""
+        {_('about_tab.environment.title')}
 
-        **Zero paper. Zero postage. Instant delivery.**
+        {_('about_tab.environment.heading')}
 
-        Traditional paper cards consume materials, printing resources, and shipping energy.
-        QR greetings are 100% digital — no trees harmed, no carbon footprint from delivery trucks.
-
-        Send your love without leaving a trace on the planet.
+        {_('about_tab.environment.description')}
         """)
 
     with col2:
-        st.markdown("""
-        ### 🔐 Secret in Transit
+        st.markdown(f"""
+        {_('about_tab.secret.title')}
 
-        **Personal, intimate, and AI-safe.**
+        {_('about_tab.secret.heading')}
 
-        Your greeting is encoded within the QR pattern itself—mathematically
-        opaque to AI systems and invisible until scanned.
+        {_('about_tab.secret.description')}
 
-        ✅ **No email provider snooping**
-        ✅ **No algorithm analysis**
-        ✅ **No unauthorized LLM training**
-        ✅ **Only the recipient sees your message**
+        {_('about_tab.secret.benefit1')}
+        {_('about_tab.secret.benefit2')}
+        {_('about_tab.secret.benefit3')}
+        {_('about_tab.secret.benefit4')}
 
-        Send your love without leaving a digital footprint! ❤️🛡️
+        {_('about_tab.secret.tagline')}
         """)
 
     with col3:
-        st.markdown("""
-        ### 📱 Device Friendly
+        st.markdown(f"""
+        {_('about_tab.device.title')}
 
-        **Works on any phone. No app required.**
+        {_('about_tab.device.heading')}
 
-        Recipients simply point their camera at the QR code — that's it!
-        Works seamlessly on both iOS and Android, opening directly in the browser.
-
-        No downloads, no sign-ups, no friction. Just scan and smile.
+        {_('about_tab.device.description')}
         """)
 
     st.markdown("---")
 
     # Business Value Proposition - Attention Economy
-    st.subheader("📈 For Businesses: Convert Attention to Action")
+    st.subheader(_("about_tab.business.title"))
 
     col1, col2 = st.columns([2, 1])
 
     with col1:
-        st.markdown("""
-        **The #1 challenge in today's attention economy:** Converting passive video views into active website visits.
+        st.markdown(f"""
+        {_('about_tab.business.challenge')}
 
-        YouTube Shorts generate **70 billion daily views** in 2025, but viewers rarely leave the platform.
-        Traditional description links have low click-through rates. Attention is captured in seconds—and lost just as fast.
+        {_('about_tab.business.solution_intro')}
 
-        **QR Greeting solves this by bridging content and commerce:**
+        {_('about_tab.business.step1')}
+        {_('about_tab.business.step2')}
+        {_('about_tab.business.step3')}
 
-        1. 🎬 **Embed Your Content** — Use any YouTube video as a background
-        2. 💬 **Add Your CTA** — Include discount codes, links, or exclusive offers in the message
-        3. 📱 **Scan to Convert** — Recipients scan, watch your video, AND see your call-to-action
-
-        **Use Cases:**
-        - Trade show displays with product demo videos
-        - Product packaging linking to tutorials + discount codes
-        - Print ads that come alive with video content
-        - Email signatures with brand story + landing page link
+        {_('about_tab.business.use_cases_title')}
+        {_('about_tab.business.use_cases_list')}
         """)
 
     with col2:
-        st.markdown("""
-        **2025 Stats:**
+        st.markdown(f"""
+        {_('about_tab.business.stats_title')}
 
-        📊 **100M** US consumers will scan QR codes
-
-        📈 **73%** prefer short video for product discovery
-
-        💰 **20%** higher ROI for Shorts vs traditional video
-
-        🎯 **68%** conversion rate from Shorts to full engagement
-
-        *Sources: Bitly, Scratcher.io, Zebracat.ai*
+        {_('about_tab.business.stats_list')}
         """)
 
     st.markdown("---")
 
-    st.write("""
-    ### Features
-    - ✨ Create custom greeting QR codes
-    - 📱 Scan and read greeting QR codes
-    - 🎨 Multiple theme options with embedded icons
-    - 📥 Download QR codes as images
-    - 💾 Compact JSON format for efficient encoding
+    st.write(f"""
+    {_('about_tab.features.title')}
+    {_('about_tab.features.custom')}
+    {_('about_tab.features.scan')}
+    {_('about_tab.features.themes')}
+    {_('about_tab.features.download')}
+    {_('about_tab.features.json')}
 
-    ### How It Works
-    1. Enter your greeting details (from, to, message)
-    2. Choose a theme
-    3. Generate the QR code
-    4. Download and share!
+    {_('about_tab.how_it_works.title')}
+    {_('about_tab.how_it_works.step1')}
+    {_('about_tab.how_it_works.step2')}
+    {_('about_tab.how_it_works.step3')}
+    {_('about_tab.how_it_works.step4')}
 
-    Recipients can scan the QR code with their phone camera or upload it to this app to view your message.
+    {_('about_tab.how_it_works.recipients')}
 
-    ### Technical Details
-    - Uses high error correction (Level H) for reliable scanning
-    - Compact JSON format minimizes QR code size
-    - Supports messages up to ~500 characters comfortably
-    - Built with Streamlit and netshare
+    {_('about_tab.technical.title')}
+    {_('about_tab.technical.error_correction')}
+    {_('about_tab.technical.json_format')}
+    {_('about_tab.technical.message_length')}
+    {_('about_tab.technical.built_with')}
     """)
 
     st.markdown("---")
 
-    st.markdown("""
-    ### 🤖 Privacy in the GenAI Era
+    st.markdown(f"""
+    {_('about_tab.privacy.title')}
 
-    **Your message stays hidden from AI systems.**
+    {_('about_tab.privacy.heading')}
 
-    Unlike text shared via email, SMS, or social media, QR-encoded messages are
-    **mathematically opaque** to automated analysis:
+    {_('about_tab.privacy.description')}
 
-    - **No AI Scanning**: Message format prevents automated text extraction
-    - **No Training Data**: Your personal messages won't train LLMs (ChatGPT, Gemini, Claude, etc.)
-    - **No Algorithm Analysis**: Email providers and platforms can't read or analyze your content
-    - **No Cloud Indexing**: Message exists only in the QR pattern, not on servers
+    {_('about_tab.privacy.no_ai')}
+    {_('about_tab.privacy.no_training')}
+    {_('about_tab.privacy.no_analysis')}
+    {_('about_tab.privacy.no_cloud')}
 
-    Your greeting is encoded, not transmitted. Protected by design. 🛡️
+    {_('about_tab.privacy.tagline')}
     """)
 
-    st.write("""
-    ### Powered By
-    - **netshare** - Network sharing and QR code utilities
-    - **Streamlit** - Interactive web interface
-    - **qrcode** - QR code generation
-    - **Pillow** - Image processing
+    st.write(f"""
+    {_('about_tab.powered_by.title')}
+    {_('about_tab.powered_by.netshare')}
+    {_('about_tab.powered_by.streamlit')}
+    {_('about_tab.powered_by.qrcode')}
+    {_('about_tab.powered_by.pillow')}
     """)
 
     # Display download count (just the number)

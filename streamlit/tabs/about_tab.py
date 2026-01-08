@@ -93,6 +93,48 @@ def render() -> None:
 
     st.markdown("---")
 
+    # Business Value Proposition - Attention Economy
+    st.subheader("📈 For Businesses: Convert Attention to Action")
+
+    col1, col2 = st.columns([2, 1])
+
+    with col1:
+        st.markdown("""
+        **The #1 challenge in today's attention economy:** Converting passive video views into active website visits.
+
+        YouTube Shorts generate **70 billion daily views** in 2025, but viewers rarely leave the platform.
+        Traditional description links have low click-through rates. Attention is captured in seconds—and lost just as fast.
+
+        **QR Greeting solves this by bridging content and commerce:**
+
+        1. 🎬 **Embed Your Content** — Use any YouTube video as a background
+        2. 💬 **Add Your CTA** — Include discount codes, links, or exclusive offers in the message
+        3. 📱 **Scan to Convert** — Recipients scan, watch your video, AND see your call-to-action
+
+        **Use Cases:**
+        - Trade show displays with product demo videos
+        - Product packaging linking to tutorials + discount codes
+        - Print ads that come alive with video content
+        - Email signatures with brand story + landing page link
+        """)
+
+    with col2:
+        st.markdown("""
+        **2025 Stats:**
+
+        📊 **100M** US consumers will scan QR codes
+
+        📈 **73%** prefer short video for product discovery
+
+        💰 **20%** higher ROI for Shorts vs traditional video
+
+        🎯 **68%** conversion rate from Shorts to full engagement
+
+        *Sources: Bitly, Scratcher.io, Zebracat.ai*
+        """)
+
+    st.markdown("---")
+
     st.write("""
     ### Features
     - ✨ Create custom greeting QR codes

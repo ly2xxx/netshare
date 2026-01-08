@@ -121,5 +121,6 @@ ANIMATION_PRESETS: Dict[str, List[str]] = {
     "confetti": ["MaterializeIn", "RadialRipple"],
     "champagne": ["RadialRipple", "FadeInCenterOut"],
     "hearts": ["FadeInCenterOut", "FadeInTopDown"],
+    "valentine": ["FadeInCenterOut", "RadialRipple"],
     "farewell": ["FadeInTopDown", "FadeInCenterOut"],
 }

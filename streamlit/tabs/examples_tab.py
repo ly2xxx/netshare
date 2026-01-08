@@ -48,6 +48,14 @@ def render() -> None:
             "visible_message": "Scan to read my farewell note"
         },
         {
+            "title": "💕 Valentine's Day Love Letter",
+            "from": "Your Secret Admirer",
+            "to": "My Dearest",
+            "theme": "valentine",
+            "message": "Every moment with you feels like a beautiful dream. You make my heart flutter and my soul sing. Happy Valentine's Day to the love of my life! 💕🌹",
+            "visible_message": "Scan for a love letter"
+        },
+        {
             "title": "🔥 Mission Impossible - Self-Destructing Message",
             "from": "IMF Agent",
             "to": "Field Operative",

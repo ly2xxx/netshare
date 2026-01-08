@@ -14,6 +14,7 @@ from utils.file_utils import get_available_gifs
 from config import THEME_ICONS
 from qr.display import display_greeting_letter
 from datetime import datetime
+from i18n import get_text as _
 
 
 def render() -> None:
@@ -26,17 +27,17 @@ def render() -> None:
             st.image(banner_path, width='stretch')
     else:
         # Fallback to text header if banner not found
-        st.markdown('<div class="main-header"><h1>🎄 Create Holiday Greeting QR Code</h1></div>',
+        st.markdown(f'<div class="main-header"><h1>{_("create_tab.header")}</h1></div>',
                     unsafe_allow_html=True)
-        st.markdown("### *A greener, smarter way to say happy holidays.*")
+        st.markdown(f"### {_('create_tab.subtitle')}")
 
-    st.write("Create a personalized holiday greeting that can be shared via QR code!")
+    st.write(_("create_tab.intro"))
 
     # =========================================================================
     # Step 1: Choose Theme & Background
     # =========================================================================
-    st.markdown("### Step 1: Choose Your Theme & Background")
-    st.info("💡 **Tip:** Pick a theme that matches your occasion. The colors will adapt automatically!")
+    st.markdown(_("create_tab.step1.title"))
+    st.info(_("create_tab.step1.tip"))
 
     # Theme selector outside form to allow interactive button clicks
     theme = render_theme_selector()
@@ -45,7 +46,7 @@ def render() -> None:
 
     # GIF background dropdown - OUTSIDE form to allow immediate preview
     available_gifs = get_available_gifs()
-    gif_options = ["(No background animation)", "(Enter custom URL...)"] + available_gifs
+    gif_options = [_("create_tab.background.none"), _("create_tab.background.custom")] + available_gifs
 
     # Initialize session state for GIF selection if needed
     if 'selected_gif_option' not in st.session_state:
@@ -61,10 +62,10 @@ def render() -> None:
         st.session_state.custom_url_validation_message = ""
 
     selected_gif_option = st.selectbox(
-        "Background Animation (Optional)",
+        _("create_tab.background.label"),
         options=gif_options,
         index=gif_options.index(st.session_state.selected_gif_option) if st.session_state.selected_gif_option in gif_options else 0,
-        help="Choose a GIF animation to display behind your greeting",
+        help=_("create_tab.background.help"),
         key="greeting_gif_background_interactive"
     )
 
@@ -72,12 +73,12 @@ def render() -> None:
     st.session_state.selected_gif_option = selected_gif_option
 
     # Show custom URL input when "(Enter custom URL...)" is selected
-    if selected_gif_option == "(Enter custom URL...)":
+    if selected_gif_option == _("create_tab.background.custom"):
         custom_url = st.text_input(
-            "Video URL",
+            _("create_tab.video_url.label"),
             value=st.session_state.custom_video_url,
-            placeholder="https://youtu.be/..., https://facebook.com/reel/..., or https://example.com/video.mp4",
-            help="Paste a YouTube URL, Google Drive shared video, Facebook video/reel, Instagram reel, or direct video link (.mp4, .webm, .mov, .avi, .m3u8)",
+            placeholder=_("create_tab.video_url.placeholder"),
+            help=_("create_tab.video_url.help"),
             key="custom_video_url_input",
             on_change=validate_custom_url_callback
         )
@@ -89,14 +90,14 @@ def render() -> None:
         elif st.session_state.custom_url_validation_status == 'invalid':
             st.warning(st.session_state.custom_url_validation_message)
         elif st.session_state.custom_video_url:
-            st.info("ℹ️ Validating URL...")
+            st.info(_("create_tab.video_url.validating"))
         else:
-            st.info("ℹ️ Enter a video URL above to enable background animation")
+            st.info(_("create_tab.video_url.enter_prompt"))
 
     # Convert selection to background parameter
-    if selected_gif_option == "(No background animation)":
+    if selected_gif_option == _("create_tab.background.none"):
         selected_gif = ""
-    elif selected_gif_option == "(Enter custom URL...)":
+    elif selected_gif_option == _("create_tab.background.custom"):
         # Use custom URL if validated, otherwise empty
         if st.session_state.custom_url_validation_status == 'valid':
             selected_gif = st.session_state.custom_video_url
@@ -107,28 +108,28 @@ def render() -> None:
         selected_gif = selected_gif_option
 
     # Immediate preview below the dropdown (only for local files)
-    if selected_gif and selected_gif_option != "(Enter custom URL...)":
+    if selected_gif and selected_gif_option != _("create_tab.background.custom"):
         gif_path = os.path.join(os.path.dirname(__file__), "..", "gif", selected_gif)
         if os.path.exists(gif_path):
-            st.image(gif_path, caption=f"Preview: {selected_gif}", width='stretch')
+            st.image(gif_path, caption=_("create_tab.gif_preview", gif_name=selected_gif), width='stretch')
         else:
-            st.warning(f"GIF file not found: {selected_gif}")
+            st.warning(_("create_tab.gif_not_found", file=selected_gif))
 
     st.divider()
 
     # =========================================================================
     # Step 2: Preview & Personalize (matching demo_tab layout)
     # =========================================================================
-    st.markdown("### Step 2: Preview & Personalize")
-    st.info("💡 **Tip:** This is how your greeting will look. You can edit the details below!")
+    st.markdown(_("create_tab.step2.title"))
+    st.info(_("create_tab.step2.tip"))
 
     # Initialize session state for greeting fields with sample data
     if 'create_from_name' not in st.session_state:
-        st.session_state.create_from_name = "Your Name"
+        st.session_state.create_from_name = _("common.placeholders.your_name")
     if 'create_to_name' not in st.session_state:
-        st.session_state.create_to_name = "Friend's Name"
+        st.session_state.create_to_name = _("common.placeholders.friend_name")
     if 'create_message' not in st.session_state:
-        st.session_state.create_message = "Wishing you a wonderful holiday season filled with joy, laughter, and cherished moments with loved ones!"
+        st.session_state.create_message = _("create_tab.default_message")
     if 'create_visible_message' not in st.session_state:
         st.session_state.create_visible_message = ""
     if 'create_all_sides' not in st.session_state:
@@ -144,8 +145,8 @@ def render() -> None:
         <div style="font-size: 3em; margin-bottom: 10px;">{theme_emoji}</div>
     </div>
     <div style="background: rgba(255,255,255,0.95); color: #333; padding: 25px; border-radius: 15px; position: relative;">
-        <p style="margin: 5px 0 0 0; font-weight: 600; font-size: 1.1em;">From: {st.session_state.create_from_name}</p>
-        <p style="margin: 5px 0 20px 0; font-weight: 600; font-size: 1.1em;">To: {st.session_state.create_to_name}</p>
+        <p style="margin: 5px 0 0 0; font-weight: 600; font-size: 1.1em;">{_("create_tab.preview.from", name=st.session_state.create_from_name)}</p>
+        <p style="margin: 5px 0 20px 0; font-weight: 600; font-size: 1.1em;">{_("create_tab.preview.to", name=st.session_state.create_to_name)}</p>
         <p style="font-family: Georgia, serif; font-size: 1.15em; line-height: 1.6; color: #444; font-style: italic; margin: 0;">"{st.session_state.create_message}"</p>
     </div>
 </div>
@@ -154,14 +155,14 @@ def render() -> None:
     st.markdown("<br>", unsafe_allow_html=True)
 
     # Expandable edit section (matching demo_tab style)
-    with st.expander("✍️ **Edit Names & Message**", expanded=False):
+    with st.expander(_("create_tab.edit.title"), expanded=False):
         col1, col2 = st.columns(2)
         with col1:
             new_from = st.text_input(
-                "From",
+                _("common.labels.from"),
                 value=st.session_state.create_from_name,
                 key="edit_from_name",
-                placeholder="Your Name"
+                placeholder=_("common.placeholders.your_name")
             )
             # Auto-update session state
             if new_from != st.session_state.create_from_name:
@@ -169,10 +170,10 @@ def render() -> None:
                 st.rerun()
         with col2:
             new_to = st.text_input(
-                "To",
+                _("common.labels.to"),
                 value=st.session_state.create_to_name,
                 key="edit_to_name",
-                placeholder="Friend's Name"
+                placeholder=_("common.placeholders.friend_name")
             )
             # Auto-update session state
             if new_to != st.session_state.create_to_name:
@@ -180,11 +181,11 @@ def render() -> None:
                 st.rerun()
 
         new_message = st.text_area(
-            "Message",
+            _("common.labels.message"),
             value=st.session_state.create_message,
             height=100,
             key="edit_message",
-            placeholder="Your personalized greeting message..."
+            placeholder=_("common.placeholders.message")
         )
         # Auto-update session state
         if new_message != st.session_state.create_message:
@@ -193,22 +194,22 @@ def render() -> None:
 
         # Character counter
         if new_message:
-            st.caption(f"Message length: {len(new_message)} characters")
+            st.caption(_("create_tab.message_length", count=len(new_message)))
 
     # QR Code options section (keeping existing features)
-    with st.expander("🎨 **QR Code Options**", expanded=False):
+    with st.expander(_("create_tab.qr_options.title"), expanded=False):
         visible_message = st.text_input(
-            "Visible Message (Optional)",
+            _("create_tab.visible_message.label"),
             value=st.session_state.create_visible_message,
-            placeholder="Scan me!",
-            help="Short text to display around the QR code image",
+            placeholder=_("create_tab.visible_message.placeholder"),
+            help=_("create_tab.visible_message.help"),
             key="edit_visible_message"
         )
 
         all_sides = st.checkbox(
-            "Add message to all 4 sides",
+            _("create_tab.add_all_sides"),
             value=st.session_state.create_all_sides,
-            help="Display the visible message on top, bottom, left, and right of the QR code",
+            help=_("create_tab.add_all_sides_help"),
             key="edit_all_sides"
         )
 
@@ -223,13 +224,13 @@ def render() -> None:
     # =========================================================================
     # Step 3: Generate & Preview
     # =========================================================================
-    st.markdown("### Step 3: Create Magic")
-    st.info("💡 **Tip:** Ready? Click below to generate your unique greeting QR code!")
+    st.markdown(_("create_tab.step3.title"))
+    st.info(_("create_tab.step3.tip"))
 
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         generate_btn = st.button(
-            "✨ Generate QR Code",
+            _("common.buttons.generate"),
             type="primary",
             key="create_tab_generate_btn",
             icon=":material/qr_code_2:"
@@ -245,7 +246,7 @@ def render() -> None:
 
         # Validate inputs
         if not from_name or not to_name or not message:
-            st.error("Please fill in all required fields (From, To, and Message)")
+            st.error(_("create_tab.error.required_fields"))
         # elif from_name == "Your Name" or to_name == "Friend's Name":
         #     st.warning("⚠️ Please personalize the From and To names before generating!")
         else:
@@ -253,17 +254,17 @@ def render() -> None:
             warning_text = None
             background = selected_gif
 
-            if selected_gif_option == "(Enter custom URL...)":
+            if selected_gif_option == _("create_tab.background.custom"):
                 if not st.session_state.custom_video_url:
-                    warning_text = "⚠️ No video URL entered. Generating QR code without background animation."
+                    warning_text = _("create_tab.warning.no_video")
                     background = ""
                 elif st.session_state.custom_url_validation_status != 'valid':
-                    st.error(f"❌ Invalid video URL: {st.session_state.custom_url_validation_message}")
-                    st.info("💡 Please enter a valid YouTube or video URL, or select a different background option.")
+                    st.error(_("create_tab.error.invalid_video", message=st.session_state.custom_url_validation_message))
+                    st.info(_("create_tab.error.video_suggestion"))
                     st.stop()
 
             # Show success message
-            st.success("🎉 **Success!** Your greeting QR code is ready.")
+            st.success(_("create_tab.success"))
 
             # Show warning if applicable
             if warning_text:
@@ -273,7 +274,7 @@ def render() -> None:
             qr_col, preview_col = st.columns([1, 1])
 
             with qr_col:
-                st.markdown("#### 📱 Your Unique QR")
+                st.markdown(f"#### {_('create_tab.qr_section')}")
                 # Generate and display QR code
                 render_qr_generation_flow(
                     from_name=from_name,
@@ -286,8 +287,8 @@ def render() -> None:
                 )
 
             with preview_col:
-                st.markdown("#### 👀 Scan Preview")
-                st.caption("This is exactly how your greeting will appear when scanned:")
+                st.markdown(f"#### {_('create_tab.preview_section')}")
+                st.caption(_("create_tab.preview_caption"))
                 # Create greeting dict matching what display_greeting_letter expects
                 preview_greeting = {
                     'to': to_name,
@@ -305,11 +306,11 @@ def render() -> None:
             # Start Over button
             col1, col2, col3 = st.columns([1, 2, 1])
             with col2:
-                if st.button("🔄 Create Another Greeting", type="secondary", key="create_tab_start_over"):
+                if st.button(_("common.buttons.create_another"), type="secondary", key="create_tab_start_over"):
                     # Reset session state
-                    st.session_state.create_from_name = "Your Name"
-                    st.session_state.create_to_name = "Friend's Name"
-                    st.session_state.create_message = "Wishing you a wonderful holiday season filled with joy, laughter, and cherished moments with loved ones!"
+                    st.session_state.create_from_name = _("common.placeholders.your_name")
+                    st.session_state.create_to_name = _("common.placeholders.friend_name")
+                    st.session_state.create_message = _("create_tab.default_message")
                     st.session_state.create_visible_message = ""
                     st.session_state.create_all_sides = False
                     st.rerun()

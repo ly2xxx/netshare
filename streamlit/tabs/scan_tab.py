@@ -6,6 +6,7 @@ UI for scanning/decoding greeting QR codes
 import streamlit as st
 from PIL import Image
 import numpy as np
+from i18n import get_text as _
 
 # Import cv2 lazily to avoid startup crashes if system libs missing
 try:
@@ -35,7 +36,7 @@ from qr.display import display_greeting_letter
 
 def render() -> None:
     """Tab for scanning/decoding greeting QR codes"""
-    st.markdown('<div class="main-header"><h1>📱 Scan Greeting QR Code</h1></div>',
+    st.markdown(f'<div class="main-header"><h1>{_("scan_tab.header")}</h1></div>',
                 unsafe_allow_html=True)
 
     # Check if greeting data is passed via URL parameters (from QR code scan)
@@ -52,22 +53,22 @@ def render() -> None:
         greeting = decode_greeting_from_url(dict(query_params))
 
         if greeting:
-            st.success("🎉 Greeting received!")
+            st.success(_("scan_tab.success"))
 
             # Display the full letter format
             display_greeting_letter(greeting)
 
             st.markdown("---")
-            st.link_button("☕ Buy me a coffee (£1)", "https://www.paypal.com/ncp/payment/NUQG396UTFRMG", help="Support the project with a small donation")
+            st.link_button(_("common.buttons.buy_coffee"), "https://www.paypal.com/ncp/payment/NUQG396UTFRMG", help="Support the project with a small donation")
 
             # Option to create their own or scan another
             col1, col2 = st.columns(2)
             with col1:
-                if st.button("📝 Create Your Own Greeting", width='stretch'):
+                if st.button(_("scan_tab.create_own"), width='stretch'):
                     st.query_params.clear()
                     st.rerun()
             with col2:
-                if st.button("📤 Scan Another QR Code", width='stretch'):
+                if st.button(_("common.buttons.scan_another"), width='stretch'):
                     # Clear only the greeting params, keep tab=scan
                     st.query_params.clear()
                     st.query_params["tab"] = "scan"
@@ -75,15 +76,15 @@ def render() -> None:
 
             return  # Don't show the upload interface
         else:
-            st.warning("Could not decode greeting from URL. Try uploading the QR code image instead.")
+            st.warning(_("scan_tab.url_decode_error"))
 
     # Normal upload interface
-    st.write("Upload a greeting QR code image to view the message!")
+    st.write(_("scan_tab.intro"))
 
     uploaded_file = st.file_uploader(
-        "Choose a QR code image",
+        _("scan_tab.upload.label"),
         type=['png', 'jpg', 'jpeg'],
-        help="Upload an image containing a greeting QR code"
+        help=_("scan_tab.upload.help")
     )
 
     if uploaded_file is not None:
@@ -92,9 +93,9 @@ def render() -> None:
             col1, col2 = st.columns([1, 1])
 
             with col1:
-                st.subheader("Uploaded QR Code")
+                st.subheader(_("scan_tab.uploaded_qr"))
                 image = Image.open(uploaded_file)
-                st.image(image, caption="Uploaded Image", width='stretch')
+                st.image(image, caption=_("scan_tab.uploaded_image"), width='stretch')
 
             # Decode QR code
             try:
@@ -119,7 +120,7 @@ def render() -> None:
                     image_array = cv2.cvtColor(image_array, cv2.COLOR_RGB2BGR)
 
                     detector = cv2.QRCodeDetector()
-                    data, bbox, _ = detector.detectAndDecode(image_array)
+                    data, bbox, _points = detector.detectAndDecode(image_array)
                     
                     if data:
                         decoded_data = data
@@ -131,32 +132,32 @@ def render() -> None:
                     greeting = parse_greeting(qr_data)
 
                     with col2:
-                        st.subheader("Greeting Message")
+                        st.subheader(_("scan_tab.greeting_message"))
 
                         if greeting:
                             # Display formatted greeting
                             display_greeting_letter(greeting)
 
                             st.markdown("---")
-                            st.link_button("☕ Buy me a coffee (£1)", "https://www.paypal.com/ncp/payment/NUQG396UTFRMG", help="Support the project with a small donation")
+                            st.link_button(_("common.buttons.buy_coffee"), "https://www.paypal.com/ncp/payment/NUQG396UTFRMG", help="Support the project with a small donation")
                         else:
-                            st.warning("This QR code doesn't contain a valid greeting format.")
-                            st.write("**Decoded data:**")
+                            st.warning(_("scan_tab.invalid_format"))
+                            st.write(_("scan_tab.decoded_data"))
                             st.code(qr_data)
                 else:
-                    msg = "No QR code found in the image."
+                    msg = _("scan_tab.no_qr_found")
                     if not ZXING_AVAILABLE and not CV2_AVAILABLE:
-                        msg += " (No scanning libraries available)"
+                        msg += " " + _("scan_tab.no_libs")
                     elif not ZXING_AVAILABLE:
-                        msg += " (ZXing-cpp not installed - it may handle this image better)"
-                        
+                        msg += " " + _("scan_tab.zxing_suggestion")
+
                     st.error(msg)
 
             except ImportError as e:
-                st.error(f"QR code scanning requires OpenCV system libraries.")
-                st.info("Please use manual JSON entry below:")
+                st.error(_("scan_tab.opencv_required"))
+                st.info(_("scan_tab.manual_entry"))
 
-                manual_data = st.text_area("Paste QR Code Data (JSON)")
+                manual_data = st.text_area(_("scan_tab.paste_label"))
                 if manual_data:
                     greeting = parse_greeting(manual_data)
                     if greeting:
@@ -164,13 +165,13 @@ def render() -> None:
                         st.write(format_greeting_display(greeting))
                         st.markdown('</div>', unsafe_allow_html=True)
                     else:
-                        st.error("Invalid greeting data format")
+                        st.error(_("scan_tab.invalid_data"))
 
             except Exception as e:
-                st.error(f"Error processing image: {str(e)}")
-                st.info("Alternatively, you can manually paste the QR code data below:")
+                st.error(_("scan_tab.error", error=str(e)))
+                st.info(_("scan_tab.alternative"))
 
-                manual_data = st.text_area("Paste QR Code Data (JSON)", key="manual_data_exception")
+                manual_data = st.text_area(_("scan_tab.paste_label"), key="manual_data_exception")
                 if manual_data:
                     greeting = parse_greeting(manual_data)
                     if greeting:
@@ -178,7 +179,7 @@ def render() -> None:
                         st.write(format_greeting_display(greeting))
                         st.markdown('</div>', unsafe_allow_html=True)
                     else:
-                        st.error("Invalid greeting data format")
+                        st.error(_("scan_tab.invalid_data"))
 
         except Exception as e:
-            st.error(f"Error processing image: {str(e)}")
+            st.error(_("scan_tab.error", error=str(e)))

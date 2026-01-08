@@ -56,6 +56,15 @@ def render() -> None:
             "visible_message": "Scan for a love letter"
         },
         {
+            "title": "📈 Marketing Funnel - Video to Website",
+            "from": "Brand Strategist",
+            "to": "Potential Customer",
+            "theme": "lights",
+            "message": "✨ EXCLUSIVE OFFER ✨\n\nLove what you just watched? Get 20% OFF your first order!\n\n🎁 Use code: QRGREET20\n👉 Visit: www.yourbrand.com/special\n\nOffer expires in 48 hours. Don't miss out!\n\n#AttentionEconomy #ConvertViewsToVisits",
+            "visible_message": "🎬 Scan for Exclusive Offer",
+            "background": "https://youtu.be/dQw4w9WgXcQ"
+        },
+        {
             "title": "🔥 Mission Impossible - Self-Destructing Message",
             "from": "IMF Agent",
             "to": "Field Operative",

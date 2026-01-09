@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 from typing import Dict, Any, Optional
 import streamlit as st
+import streamlit.components.v1 as components
 
 
 # Path to translations file
@@ -61,11 +62,58 @@ def load_translations() -> Dict[str, Dict[str, str]]:
         return {"en": {}, "zh": {}}
 
 
+def detect_browser_locale():
+    """
+    Inject JavaScript to detect browser locale and store in session state.
+    Only runs once on first visit (when language hasn't been set yet).
+    Maps browser locale to 'zh' if it starts with 'zh', otherwise 'en'.
+    """
+    # Only detect if we haven't set a language yet
+    if "language" in st.session_state:
+        return
+    
+    # Check if we already have a detected locale from query params
+    try:
+        query_params = st.query_params
+        detected = query_params.get("detected_locale")
+    except:
+        query_params = st.experimental_get_query_params()
+        detected = query_params.get("detected_locale", [None])[0]
+    
+    if detected:
+        # Store the detected locale and use it
+        lang = "zh" if detected.startswith("zh") else "en"
+        st.session_state.language = lang
+        st.session_state._locale_detected = True
+        return
+    
+    # If not already detected, inject JavaScript to detect and reload with param
+    if not st.session_state.get("_locale_detection_attempted"):
+        st.session_state._locale_detection_attempted = True
+        components.html("""
+            <script>
+            (function() {
+                const browserLocale = navigator.language || navigator.userLanguage || 'en';
+                const url = new URL(window.parent.location.href);
+                // Only add param if not already present
+                if (!url.searchParams.has('detected_locale')) {
+                    url.searchParams.set('detected_locale', browserLocale);
+                    window.parent.location.href = url.toString();
+                }
+            })();
+            </script>
+        """, height=0)
+
+
 def init_language():
     """
     Initialize language setting in session state.
     Call this once at app startup before any translation calls.
     """
+    # First, try to detect browser locale (only on first visit)
+    detect_browser_locale()
+    
+    # If language still not set, use default
     if "language" not in st.session_state:
         st.session_state.language = DEFAULT_LANGUAGE
 

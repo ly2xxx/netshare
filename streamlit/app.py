@@ -30,10 +30,20 @@ st.markdown(CSS_STYLES, unsafe_allow_html=True)
 try:
     query_params = st.query_params
     tab_param = query_params.get('tab', 'create')
+    # Read _tab param set by JavaScript tab click tracking
+    tracked_tab = query_params.get('_tab')
 except:
     # Fallback for older Streamlit versions
     query_params = st.experimental_get_query_params()
     tab_param = query_params.get('tab', ['create'])[0]
+    tracked_tab = query_params.get('_tab', [None])[0]
+
+# Update session state with tracked tab index if available
+if tracked_tab is not None:
+    try:
+        st.session_state.current_tab_index = int(tracked_tab)
+    except (ValueError, TypeError):
+        pass
 
 # Show mobile-friendly greeting view if tab=view
 if tab_param == "view":
@@ -87,32 +97,58 @@ def main():
         tab_map = {"demo": 0, "create": 1, "scan": 2, "examples": 3, "batch": 4, "about": 5}
     else:
         tab_map = {"demo": 0, "create": 1, "scan": 2, "examples": 3, "about": 4}
-    tab_index = tab_map.get(tab_param, 0)
+    
+    # Use session state tab index if available (preserves tab across locale switch)
+    # Otherwise fall back to URL param or default to Demo (0)
+    if "current_tab_index" in st.session_state:
+        tab_index = st.session_state.current_tab_index
+    else:
+        tab_index = tab_map.get(tab_param, 0)
+        st.session_state.current_tab_index = tab_index
 
-    # Inject JavaScript to click the correct tab (only if not the first tab)
-    if tab_index > 0:
-        components.html(f"""
-            <script>
-            (function() {{
-                let attempts = 0;
-                const maxAttempts = 10;
+    # Inject JavaScript to:
+    # 1. Click the correct tab if not the first tab
+    # 2. Track tab clicks and store in session state via hidden query param
+    components.html(f"""
+        <script>
+        (function() {{
+            let attempts = 0;
+            const maxAttempts = 10;
+            const targetTabIndex = {tab_index};
 
-                function clickTab() {{
-                    const tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
+            function clickTab() {{
+                const tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
 
-                    if (tabs && tabs.length > {tab_index}) {{
-                        tabs[{tab_index}].click();
-                        return true;
-                    }} else if (attempts < maxAttempts) {{
-                        attempts++;
-                        setTimeout(clickTab, 100);
+                if (tabs && tabs.length > targetTabIndex) {{
+                    // Click the target tab if not already on it (index 0)
+                    if (targetTabIndex > 0) {{
+                        tabs[targetTabIndex].click();
                     }}
+                    
+                    // Add click listeners to all tabs to track selection
+                    tabs.forEach((tab, index) => {{
+                        if (!tab.hasAttribute('data-tab-tracked')) {{
+                            tab.setAttribute('data-tab-tracked', 'true');
+                            tab.addEventListener('click', () => {{
+                                // Store tab index in URL param for next rerun
+                                const url = new URL(window.parent.location.href);
+                                url.searchParams.set('_tab', index.toString());
+                                // Use history.replaceState to avoid page reload
+                                window.parent.history.replaceState({{}}, '', url.toString());
+                            }});
+                        }}
+                    }});
+                    return true;
+                }} else if (attempts < maxAttempts) {{
+                    attempts++;
+                    setTimeout(clickTab, 100);
                 }}
+            }}
 
-                clickTab();
-            }})();
-            </script>
-        """, height=0)
+            clickTab();
+        }})();
+        </script>
+    """, height=0)
 
     # Main tabs (conditionally include batch tab)
     # Demo tab is first for visibility to new users

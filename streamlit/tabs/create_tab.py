@@ -10,7 +10,7 @@ from tabs.components import (
     validate_custom_url_callback,
     render_qr_generation_flow
 )
-from utils.file_utils import get_available_gifs
+from utils.file_utils import get_available_gifs, get_available_backgrounds
 from utils.url_utils import is_web_url
 from config import THEME_ICONS
 from qr.display import display_greeting_letter
@@ -81,10 +81,20 @@ def load_params_from_url():
                         if background_param in available_gifs:
                             st.session_state.selected_gif_option = background_param
                         else:
-                            st.session_state.background_validation_warning = (
-                                f"⚠️ Background file '{background_param}' not found. Using no background."
-                            )
-                            st.session_state.selected_gif_option = _("create_tab.background.none")
+                            # Check kept (private) backgrounds
+                            available_kept = get_available_backgrounds()
+                            if background_param in available_kept:
+                                # Found in keep/ folder.
+                                # Don't select it in dropdown (keep as None or default).
+                                # Store for use during generation.
+                                st.session_state.keep_background = background_param
+                                # Explicitly ensure we show "None" in dropdown
+                                st.session_state.selected_gif_option = _("create_tab.background.none")
+                            else:
+                                st.session_state.background_validation_warning = (
+                                    f"⚠️ Background file '{background_param}' not found. Using no background."
+                                )
+                                st.session_state.selected_gif_option = _("create_tab.background.none")
     except Exception as e:
         # Silently handle any query param errors
         pass
@@ -142,6 +152,9 @@ def render() -> None:
 
     if 'custom_video_url' not in st.session_state:
         st.session_state.custom_video_url = ""
+
+    if 'keep_background' not in st.session_state:
+        st.session_state.keep_background = None
 
     if 'custom_url_validation_status' not in st.session_state:
         st.session_state.custom_url_validation_status = None  # None, 'valid', 'invalid'
@@ -341,6 +354,10 @@ def render() -> None:
             # Determine background and warning text
             warning_text = None
             background = selected_gif
+
+            # Fallback to hidden keep_background if no visible background is selected
+            if not background and st.session_state.get('keep_background'):
+                background = st.session_state.keep_background
 
             if selected_gif_option == _("create_tab.background.custom"):
                 if not st.session_state.custom_video_url:

@@ -38,7 +38,11 @@ def load_params_from_url():
                 
                 # Load message parameter
                 if 'message' in query_params:
-                    st.session_state.create_message = query_params['message']
+                    message_text = query_params['message']
+                    # Append URL to message if URL parameter exists
+                    if 'url' in query_params:
+                        message_text = f"{message_text}\n{query_params['url']}"
+                    st.session_state.create_message = message_text
                 
                 # Load theme parameter
                 if 'theme' in query_params:

@@ -11,6 +11,7 @@ from tabs.components import (
     render_qr_generation_flow
 )
 from utils.file_utils import get_available_gifs
+from utils.url_utils import is_web_url
 from config import THEME_ICONS
 from qr.display import display_greeting_letter
 from datetime import datetime
@@ -53,6 +54,37 @@ def load_params_from_url():
                     st.session_state.source_url = query_params['url']
                     # Show info banner that this was shared from another app
                     st.session_state.show_source_banner = True
+
+                # Load background parameter
+                if 'background' in query_params:
+                    background_param = query_params['background']
+
+                    # Web URL: Set custom option and validate
+                    if is_web_url(background_param):
+                        st.session_state.selected_gif_option = _("create_tab.background.custom")
+                        st.session_state.custom_video_url = background_param
+
+                        # Trigger validation manually
+                        st.session_state.custom_video_url_input = background_param
+                        validate_custom_url_callback()
+
+                        # Store validation errors for banner display
+                        if st.session_state.custom_url_validation_status != 'valid':
+                            st.session_state.background_validation_warning = (
+                                f"⚠️ Background URL validation issue: "
+                                f"{st.session_state.custom_url_validation_message}"
+                            )
+
+                    # Local file: Verify existence
+                    else:
+                        available_gifs = get_available_gifs()
+                        if background_param in available_gifs:
+                            st.session_state.selected_gif_option = background_param
+                        else:
+                            st.session_state.background_validation_warning = (
+                                f"⚠️ Background file '{background_param}' not found. Using no background."
+                            )
+                            st.session_state.selected_gif_option = _("create_tab.background.none")
     except Exception as e:
         # Silently handle any query param errors
         pass
@@ -69,7 +101,12 @@ def render() -> None:
         source_url = st.session_state.get('source_url', '')
         st.info(f"✨ Pre-filled from: {source_url}")
         st.session_state.show_source_banner = False  # Only show once
-    
+
+    # Show background validation warning if present
+    if st.session_state.get('background_validation_warning', ''):
+        st.warning(st.session_state.background_validation_warning)
+        st.session_state.background_validation_warning = ''  # Only show once
+
     # Display the banner image as the header (left-aligned, smaller for clarity)
     banner_path = os.path.join(os.path.dirname(__file__), "..", "banner", "qr-greeting-banner-4x.png")
     if os.path.exists(banner_path):
@@ -367,4 +404,7 @@ def render() -> None:
                     # Clear URL param flag
                     if 'params_loaded_from_url' in st.session_state:
                         del st.session_state.params_loaded_from_url
+                    # Clear background validation warning
+                    if 'background_validation_warning' in st.session_state:
+                        del st.session_state.background_validation_warning
                     st.rerun()

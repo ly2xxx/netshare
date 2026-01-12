@@ -19,12 +19,13 @@ https://qr-greeting.streamlit.app/?tab=create
 | `to` | string | Recipient name | `Fellow Tycoon` |
 | `message` | string | Greeting message | `I grew my Dream Fund...` |
 | `theme` | string | Visual theme | `confetti`, `snowflake`, `hearts`, etc. |
+| `background` | string | Background file or URL | `Christmas-Animation1.gif` or `https://youtube.com/...` |
 | `url` | string | Source URL (for attribution) | `https://risk-reward-game.streamlit.app` |
 
 ### Example URL
 
 ```
-https://qr-greeting.streamlit.app/?tab=create&from=Dream+Tycoon+Player&to=Fellow+Tycoon&message=I+grew+my+Dream+Fund+from+%241%2C000+to+%241%2C416+%28%2B41.6%25+profit%29+in+2+rounds%21+Can+you+beat+my+score%3F&theme=confetti&url=https%3A%2F%2Frisk-reward-game.streamlit.app
+https://qr-greeting.streamlit.app/?tab=create&from=Dream+Tycoon+Player&to=Fellow+Tycoon&message=I+grew+my+Dream+Fund+from+%241%2C000+to+%241%2C416+%28%2B41.6%25+profit%29+in+2+rounds%21+Can+you+beat+my+score%3F&theme=confetti&background=Christmas-Animation1.gif&url=https%3A%2F%2Frisk-reward-game.streamlit.app
 ```
 
 ## Implementation Details
@@ -66,6 +67,7 @@ params = urllib.parse.urlencode({
     'to': 'Friend',
     'message': 'Check out my score!',
     'theme': 'confetti',
+    'background': 'Christmas-Animation1.gif',
     'url': 'https://your-app.streamlit.app'
 })
 
@@ -81,6 +83,7 @@ const params = new URLSearchParams({
     to: 'Friend',
     message: 'Check out my score!',
     theme: 'confetti',
+    background: 'https://www.youtube.com/watch?v=VIDEO_ID',
     url: 'https://your-app.streamlit.app'
 });
 
@@ -90,7 +93,7 @@ const qrUrl = `https://qr-greeting.streamlit.app/?tab=create&${params.toString()
 ### Curl
 
 ```bash
-curl "https://qr-greeting.streamlit.app/?tab=create&from=Player&to=Friend&message=Hello&theme=confetti"
+curl "https://qr-greeting.streamlit.app/?tab=create&from=Player&to=Friend&message=Hello&theme=confetti&background=NewYear-Animation1.gif"
 ```
 
 ## Available Themes
@@ -106,6 +109,47 @@ curl "https://qr-greeting.streamlit.app/?tab=create&from=Player&to=Friend&messag
 - `valentine` - Valentine's Day
 - `burn_after_read` - Secret message
 - `general` - Default theme
+
+## Background Parameter
+
+### Supported Background Types
+
+1. **Local Files**: Use filename from available backgrounds
+   ```
+   ?background=Christmas-Animation1.gif
+   ```
+
+2. **Web URLs**: Direct video links or platform URLs
+   ```
+   ?background=https://youtube.com/watch?v=VIDEO_ID
+   ?background=https://drive.google.com/file/d/FILE_ID/view
+   ?background=https://example.com/video.mp4
+   ```
+
+### Available Local Backgrounds
+
+- `Christmas-Animation1.gif` - Christmas theme
+- `Christmas-Animation2.gif` - Alternative Christmas
+- `NewYear-Animation1.gif` - New Year celebration
+- `NewYear-Animation2.gif` - Alternative New Year
+- `Valentine-Animation1.jpg` - Valentine's Day
+- `Valentine-Animation2.jpg` - Alternative Valentine
+- `letter-background-design-01.jpg` - General letter background
+
+### Supported Web Platforms
+
+- **YouTube**: Full watch URLs and short links
+- **Google Drive**: Shared file links
+- **Facebook**: Video and reel URLs
+- **Instagram**: Reel and post URLs (limited support)
+- **Direct Video**: .mp4, .webm, .mov, .avi, .m3u8 files
+
+### Validation Behavior
+
+- Invalid backgrounds fallback to no background
+- Warning shown to user for validation errors
+- Local files checked against available GIF list
+- Web URLs validated for format and platform support
 
 ## Use Cases
 
@@ -152,7 +196,6 @@ Link from one app to QR greeting generator:
 
 ## Future Enhancements
 
-- [ ] Add `background` parameter for GIF/video URLs
 - [ ] Add `visible_message` parameter for QR code overlays
 - [ ] Add `auto_generate` parameter to skip manual generation step
 - [ ] Add webhook support for automated QR generation

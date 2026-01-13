@@ -66,6 +66,7 @@ def render() -> None:
             with col1:
                 if st.button(_("scan_tab.create_own"), width='stretch'):
                     st.query_params.clear()
+                    st.query_params["tab"] = "create"
                     st.rerun()
             with col2:
                 if st.button(_("common.buttons.scan_another"), width='stretch'):

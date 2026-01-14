@@ -67,12 +67,16 @@ def render() -> None:
                 if st.button(_("scan_tab.create_own"), width='stretch'):
                     st.query_params.clear()
                     st.query_params["tab"] = "create"
+                    # Update session state to ensure tab switches correctly
+                    st.session_state.current_tab_index = 1  # create tab index
                     st.rerun()
             with col2:
                 if st.button(_("common.buttons.scan_another"), width='stretch'):
                     # Clear only the greeting params, keep tab=scan
                     st.query_params.clear()
                     st.query_params["tab"] = "scan"
+                    # Update session state to ensure tab stays on scan
+                    st.session_state.current_tab_index = 2  # scan tab index
                     st.rerun()
 
             return  # Don't show the upload interface

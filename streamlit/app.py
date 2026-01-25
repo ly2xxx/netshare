@@ -5,6 +5,13 @@ Holiday Greeting QR Code Generator
 A Streamlit app for creating and reading holiday greeting QR codes
 """
 
+import sys
+import os
+
+# Ensure the app's directory is in the Python path for local module imports
+# This is required for Streamlit Cloud where the working directory may differ
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 import streamlit as st
 import streamlit.components.v1 as components
 

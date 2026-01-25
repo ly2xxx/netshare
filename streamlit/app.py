@@ -17,6 +17,10 @@ from tabs import create_tab, scan_tab, examples_tab, batch_tab, about_tab, view_
 # Import internationalization
 from i18n import init_language, get_text as _, get_language_selector
 
+# Import and start keepalive daemon for dependent services
+from keepalive_daemon import start_keepalive_daemon
+start_keepalive_daemon()
+
 # Set page configuration
 st.set_page_config(**PAGE_CONFIG)
 

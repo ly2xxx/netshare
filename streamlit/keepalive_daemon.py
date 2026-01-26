@@ -44,7 +44,7 @@ def ping_service(url: str, name: str) -> bool:
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
         }
-        response = requests.get(url, headers=headers, timeout=30)
+        response = requests.get(url, headers=headers, timeout=60)
         timestamp = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logger.info(f"[{timestamp}] Keepalive ping to {name}: Status {response.status_code}")
         return response.status_code == 200

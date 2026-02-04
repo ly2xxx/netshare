@@ -8,69 +8,70 @@ from greeting_formats import create_holiday_greeting, encode_greeting_to_url
 from qr.generator import generate_qr_code
 from qr.display import display_qr_with_protection
 from config import THEME_COLORS
+from i18n import get_text as _
 
 
 def render() -> None:
     """Tab showing example greetings"""
-    st.markdown('<div class="main-header"><h1>📖 Examples</h1></div>',
+    st.markdown(f'<div class="main-header"><h1>{_("examples_tab.header")}</h1></div>',
                 unsafe_allow_html=True)
 
-    st.write("Here are some example holiday greetings you can create:")
+    st.write(_("examples_tab.intro"))
 
     examples = [
         {
-            "title": "🎄 Christmas Greeting",
-            "from": "Alice",
-            "to": "Bob",
+            "title": _("examples_tab.christmas.title"),
+            "from": _("examples_tab.christmas.from"),
+            "to": _("examples_tab.christmas.to"),
             "theme": "snowflake",
-            "message": "Merry Christmas! Wishing you joy and happiness this season. Thank you for being a wonderful friend!"
+            "message": _("examples_tab.christmas.message")
         },
         {
-            "title": "🎆 New Year Message",
-            "from": "Bob",
-            "to": "Future Me",
+            "title": _("examples_tab.newyear.title"),
+            "from": _("examples_tab.newyear.from"),
+            "to": _("examples_tab.newyear.to"),
             "theme": "fireworks",
-            "message": "2025 was incredible! Here's to growth and new adventures in 2026!"
+            "message": _("examples_tab.newyear.message")
         },
         {
-            "title": "💍 Wedding Save the Date",
-            "from": "Emma & James",
-            "to": "Friends and Family",
+            "title": _("examples_tab.wedding.title"),
+            "from": _("examples_tab.wedding.from"),
+            "to": _("examples_tab.wedding.to"),
             "theme": "champagne",
-            "message": "We're getting married! Save the date: June 15, 2026. More details to follow!"
+            "message": _("examples_tab.wedding.message")
         },
         {
-            "title": "👋 Farewell to Colleagues",
-            "from": "Alex",
-            "to": "The Team",
+            "title": _("examples_tab.farewell.title"),
+            "from": _("examples_tab.farewell.from"),
+            "to": _("examples_tab.farewell.to"),
             "theme": "farewell",
-            "message": "It's been an amazing journey working with you all! Thank you for the memories, the laughs, and the lessons. Let's stay in touch!",
-            "visible_message": "Scan to read my farewell note"
+            "message": _("examples_tab.farewell.message"),
+            "visible_message": _("examples_tab.farewell.visible_message")
         },
         {
-            "title": "💕 Valentine's Day Love Letter",
-            "from": "Your Secret Admirer",
-            "to": "My Dearest",
+            "title": _("examples_tab.valentine.title"),
+            "from": _("examples_tab.valentine.from"),
+            "to": _("examples_tab.valentine.to"),
             "theme": "valentine",
-            "message": "Every moment with you feels like a beautiful dream. You make my heart flutter and my soul sing. Happy Valentine's Day to the love of my life! 💕🌹",
-            "visible_message": "Scan for a love letter"
+            "message": _("examples_tab.valentine.message"),
+            "visible_message": _("examples_tab.valentine.visible_message")
         },
         {
-            "title": "📈 Marketing Funnel - Video to Website",
-            "from": "Brand Strategist",
-            "to": "Potential Customer",
+            "title": _("examples_tab.marketing.title"),
+            "from": _("examples_tab.marketing.from"),
+            "to": _("examples_tab.marketing.to"),
             "theme": "lights",
-            "message": "✨ EXCLUSIVE OFFER ✨\n\nLove what you just watched? Get 20% OFF your first order!\n\n🎁 Use code: QRGREET20\n👉 Visit: www.yourbrand.com/special\n\nOffer expires in 48 hours. Don't miss out!\n\n#AttentionEconomy #ConvertViewsToVisits",
-            "visible_message": "🎬 Scan for Exclusive Offer",
+            "message": _("examples_tab.marketing.message"),
+            "visible_message": _("examples_tab.marketing.visible_message"),
             "background": "https://youtu.be/dQw4w9WgXcQ"
         },
         {
-            "title": "🔥 Mission Impossible - Self-Destructing Message",
-            "from": "IMF Agent",
-            "to": "Field Operative",
+            "title": _("examples_tab.mission.title"),
+            "from": _("examples_tab.mission.from"),
+            "to": _("examples_tab.mission.to"),
             "theme": "burn_after_read",
-            "message": "Your mission: Rendezvous at Café Milano, 1800 hours. Bring the package. Delete this message after reading. No digital trail - no email interception, no AI monitoring, no server logs. For your eyes only. 🕵️",
-            "visible_message": "DELETE ME",
+            "message": _("examples_tab.mission.message"),
+            "visible_message": _("examples_tab.mission.visible_message"),
             "all_sides": True
         }
     ]
@@ -80,9 +81,9 @@ def render() -> None:
             col1, col2 = st.columns([1, 1])
 
             with col1:
-                st.write(f"**From:** {example['from']}")
-                st.write(f"**To:** {example['to']}")
-                st.write(f"**Theme:** {example['theme']}")
+                st.write(f"**{_('common.labels.from')}:** {example['from']}")
+                st.write(f"**{_('common.labels.to')}:** {example['to']}")
+                st.write(f"**{_('create_tab.step1.title').replace('### ', '').replace('Step 1: Choose Your ', '').replace('步骤 1：选择您的', '')}:** {example['theme']}")
                 st.markdown("---")
                 st.write(example['message'])
 
@@ -112,4 +113,4 @@ def render() -> None:
                     module_color=theme_colors['module'],
                     position_ring_color=theme_colors['ring']
                 )
-                display_qr_with_protection(qr_img, caption="QR Code", width=None)
+                display_qr_with_protection(qr_img, caption=_("display.qr_preview"), width=None)

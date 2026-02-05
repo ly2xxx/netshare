@@ -19,7 +19,7 @@ import streamlit.components.v1 as components
 from config import THEME_ICONS, PAGE_CONFIG, CSS_STYLES
 
 # Import tab modules
-from tabs import create_tab, scan_tab, examples_tab, batch_tab, about_tab, view_page, demo_tab
+from tabs import create_tab, scan_tab, examples_tab, batch_tab, about_tab, view_page, demo_tab, funnel_tab
 
 # Import internationalization
 from i18n import init_language, get_text as _, get_language_selector
@@ -95,6 +95,13 @@ def main():
 
         st.markdown("---")
 
+        # Marketing Funnel tab toggle
+        show_funnel = st.checkbox(
+            "📈 Marketing Funnel",
+            value=False,
+            help="Create QR codes for marketing campaigns"
+        )
+        
         # Batch tab toggle
         show_batch = st.checkbox(
             _("app.sidebar.batch_checkbox"),
@@ -102,12 +109,25 @@ def main():
             help=_("app.sidebar.batch_help")
         )
 
-    # Map tab names to indices (depends on whether batch tab is shown)
+    # Map tab names to indices (depends on whether batch/funnel tabs are shown)
     # Demo tab is first for visibility to new users
+    tab_index_counter = 0
+    tab_map = {}
+    tab_map["demo"] = tab_index_counter
+    tab_index_counter += 1
+    tab_map["create"] = tab_index_counter
+    tab_index_counter += 1
+    tab_map["scan"] = tab_index_counter
+    tab_index_counter += 1
+    tab_map["examples"] = tab_index_counter
+    tab_index_counter += 1
+    if show_funnel:
+        tab_map["funnel"] = tab_index_counter
+        tab_index_counter += 1
     if show_batch:
-        tab_map = {"demo": 0, "create": 1, "scan": 2, "examples": 3, "batch": 4, "about": 5}
-    else:
-        tab_map = {"demo": 0, "create": 1, "scan": 2, "examples": 3, "about": 4}
+        tab_map["batch"] = tab_index_counter
+        tab_index_counter += 1
+    tab_map["about"] = tab_index_counter
     
     # Use session state tab index if available (preserves tab across locale switch)
     # Otherwise fall back to URL param or default to Demo (0)
@@ -161,58 +181,55 @@ def main():
         </script>
     """, height=0)
 
-    # Main tabs (conditionally include batch tab)
+    # Main tabs (conditionally include batch and/or funnel tabs)
     # Demo tab is first for visibility to new users
+    # Build tab names dynamically
+    tab_names = [
+        _("app.tabs.demo"),
+        _("app.tabs.create"),
+        _("app.tabs.scan"),
+        _("app.tabs.examples")
+    ]
+    if show_funnel:
+        tab_names.append("📈 Marketing Funnel")
     if show_batch:
-        tab0, tab1, tab2, tab3, tab4, tab5 = st.tabs([
-            _("app.tabs.demo"),
-            _("app.tabs.create"),
-            _("app.tabs.scan"),
-            _("app.tabs.examples"),
-            _("app.tabs.batch"),
-            _("app.tabs.about")
-        ])
-
-        with tab0:
-            demo_tab.render()
-
-        with tab1:
-            create_tab.render()
-
-        with tab2:
-            scan_tab.render()
-
-        with tab3:
-            examples_tab.render()
-
-        with tab4:
+        tab_names.append(_("app.tabs.batch"))
+    tab_names.append(_("app.tabs.about"))
+    
+    # Create tabs
+    tabs = st.tabs(tab_names)
+    
+    # Render tabs
+    tab_idx = 0
+    
+    with tabs[tab_idx]:  # Demo
+        demo_tab.render()
+    tab_idx += 1
+    
+    with tabs[tab_idx]:  # Create
+        create_tab.render()
+    tab_idx += 1
+    
+    with tabs[tab_idx]:  # Scan
+        scan_tab.render()
+    tab_idx += 1
+    
+    with tabs[tab_idx]:  # Examples
+        examples_tab.render()
+    tab_idx += 1
+    
+    if show_funnel:
+        with tabs[tab_idx]:  # Funnel
+            funnel_tab.render()
+        tab_idx += 1
+    
+    if show_batch:
+        with tabs[tab_idx]:  # Batch
             batch_tab.render()
-
-        with tab5:
-            about_tab.render()
-    else:
-        tab0, tab1, tab2, tab3, tab4 = st.tabs([
-            _("app.tabs.demo"),
-            _("app.tabs.create"),
-            _("app.tabs.scan"),
-            _("app.tabs.examples"),
-            _("app.tabs.about")
-        ])
-
-        with tab0:
-            demo_tab.render()
-
-        with tab1:
-            create_tab.render()
-
-        with tab2:
-            scan_tab.render()
-
-        with tab3:
-            examples_tab.render()
-
-        with tab4:
-            about_tab.render()
+        tab_idx += 1
+    
+    with tabs[tab_idx]:  # About
+        about_tab.render()
 
 
 if __name__ == "__main__":

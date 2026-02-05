@@ -96,16 +96,20 @@ def main():
         st.markdown("---")
 
         # Marketing Funnel tab toggle
+        # Auto-enable if URL has tab=funnel parameter
+        default_show_funnel = tab_param == "funnel"
         show_funnel = st.checkbox(
             "📈 Marketing Funnel",
-            value=False,
+            value=default_show_funnel,
             help="Create QR codes for marketing campaigns"
         )
         
         # Batch tab toggle
+        # Auto-enable if URL has tab=batch parameter
+        default_show_batch = tab_param == "batch"
         show_batch = st.checkbox(
             _("app.sidebar.batch_checkbox"),
-            value=False,
+            value=default_show_batch,
             help=_("app.sidebar.batch_help")
         )
 

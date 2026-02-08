@@ -109,6 +109,7 @@ def render() -> None:
 def render_funnel_view(params: dict) -> None:
     """
     Render marketing funnel experience when QR is scanned.
+    Updated with warm, pottery-focused design for creators like Mia Mueller.
     """
     # Import here to avoid circular imports
     from utils.video_utils import convert_to_embed_url
@@ -127,17 +128,21 @@ def render_funnel_view(params: dict) -> None:
     
     embed_url = convert_to_embed_url(video_url) if video_url else None
     
-    # CSS for funnel experience
+    # New pottery-themed CSS with warm, tactile design
     st.markdown("""
     <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Source+Sans+Pro:wght@400;600&display=swap');
+        
         .funnel-container {
             max-width: 100%;
             min-height: 100vh;
-            background: #1a1a2e;
+            background: #FAF7F2;
+            font-family: 'Source Sans Pro', sans-serif;
         }
         .funnel-video {
             width: 100%;
-            height: 40vh;
+            height: 50vh;
+            position: relative;
         }
         .funnel-video iframe, .funnel-video video {
             width: 100%;
@@ -145,64 +150,115 @@ def render_funnel_view(params: dict) -> None:
             border: none;
             object-fit: cover;
         }
-        .funnel-overlay {
-            background: white;
-            margin: -30px 15px 15px 15px;
-            padding: 25px;
-            border-radius: 20px;
-            box-shadow: 0 -10px 40px rgba(0,0,0,0.3);
-            position: relative;
-            z-index: 10;
+        .funnel-content {
+            background: #FAF7F2;
+            padding: 40px 20px;
+            max-width: 600px;
+            margin: 0 auto;
         }
         .funnel-headline {
-            font-size: 1.5em;
-            font-weight: bold;
-            color: #333;
+            font-family: 'Poppins', sans-serif;
+            font-size: 2em;
+            font-weight: 600;
+            color: #3E3830;
             text-align: center;
             margin-bottom: 15px;
+            line-height: 1.2;
         }
         .funnel-offer {
             font-size: 1.1em;
-            color: #555;
+            color: #3E3830;
             text-align: center;
-            line-height: 1.6;
-            margin-bottom: 20px;
+            line-height: 1.7;
+            margin-bottom: 25px;
             white-space: pre-wrap;
         }
-        .funnel-promo {
-            background: linear-gradient(135deg, #ffd700 0%, #ffb347 100%);
-            color: #333;
-            padding: 10px 20px;
-            border-radius: 8px;
+        .funnel-benefits {
+            margin: 25px 0;
+            padding: 0;
+        }
+        .funnel-benefit {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 12px;
+            font-size: 1.05em;
+            color: #3E3830;
+        }
+        .funnel-benefit::before {
+            content: '✓';
+            color: #B8956A;
             font-weight: bold;
-            font-size: 1.2em;
+            margin-right: 10px;
+            font-size: 1.3em;
+        }
+        .funnel-promo {
+            background: #B8956A;
+            color: white;
+            padding: 12px 25px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.25em;
             text-align: center;
-            margin-bottom: 15px;
+            margin: 25px auto;
+            max-width: 300px;
+            box-shadow: 0 3px 10px rgba(184, 149, 106, 0.3);
         }
         .funnel-urgency {
-            color: #e74c3c;
+            color: #E74C3C;
             text-align: center;
-            font-size: 0.95em;
-            margin-bottom: 15px;
+            font-size: 1em;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+        .funnel-urgency::before {
+            content: '⏱ ';
         }
         .funnel-cta {
             display: block;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            background: linear-gradient(135deg, #B8956A 0%, #A67C52 100%);
             color: white !important;
             text-decoration: none;
-            padding: 15px 30px;
-            border-radius: 30px;
-            font-weight: bold;
-            font-size: 1.2em;
+            padding: 18px 40px;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1.25em;
             text-align: center;
-            margin: 20px auto;
-            max-width: 300px;
+            margin: 25px auto;
+            max-width: 320px;
+            box-shadow: 0 4px 12px rgba(184, 149, 106, 0.4);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .funnel-cta:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(184, 149, 106, 0.5);
+        }
+        .funnel-separator {
+            border: 0;
+            height: 1px;
+            background: #E8DCC8;
+            margin: 30px 20px;
+        }
+        .funnel-trust {
+            text-align: center;
+            color: #666;
+            font-size: 0.95em;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #E8DCC8;
         }
         .funnel-brand {
             text-align: center;
             color: #888;
-            font-size: 0.85em;
-            margin-top: 20px;
+            font-size: 0.9em;
+            margin-top: 15px;
+            font-style: italic;
+        }
+        .youtube-icon {
+            width: 20px;
+            height: 20px;
+            vertical-align: middle;
+            margin-right: 8px;
         }
     </style>
     """, unsafe_allow_html=True)
@@ -214,7 +270,7 @@ def render_funnel_view(params: dict) -> None:
             video_id = embed_url.split('/')[-1]
             video_html = f'''
             <div class="funnel-video">
-                <iframe src="{embed_url}?autoplay=1&mute=1&loop=1&playlist={video_id}&controls=0"
+                <iframe src="{embed_url}?autoplay=1&mute=1&loop=1&playlist={video_id}&controls=1"
                         allow="autoplay; encrypted-media" allowfullscreen></iframe>
             </div>
             '''
@@ -234,33 +290,66 @@ def render_funnel_view(params: dict) -> None:
             </div>
             '''
     
-    promo_html = f'<div class="funnel-promo">🏷️ {promo_code}</div>' if promo_code else ""
-    urgency_html = f'<div class="funnel-urgency">⏰ {urgency}</div>' if urgency else ""
-    brand_html = f'<div class="funnel-brand">from {brand_name}</div>' if brand_name else ""
+    # Parse offer text for bullet points (if they exist)
+    offer_lines = offer_text.split('\n')
+    benefits_html = ""
+    main_offer = []
+    
+    for line in offer_lines:
+        line = line.strip()
+        if line.startswith('✓') or line.startswith('•') or line.startswith('-'):
+            # It's a benefit bullet
+            benefit_text = line.lstrip('✓•- ').strip()
+            benefits_html += f'<div class="funnel-benefit">{benefit_text}</div>'
+        elif line:
+            # Regular offer text
+            main_offer.append(line)
+    
+    main_offer_text = '<br>'.join(main_offer)
+    
+    if benefits_html:
+        benefits_section = f'<div class="funnel-benefits">{benefits_html}</div>'
+    else:
+        benefits_section = ""
+    
+    promo_html = f'<div class="funnel-promo">Use Code: {promo_code}</div>' if promo_code else ""
+    urgency_html = f'<div class="funnel-urgency">{urgency}</div>' if urgency else ""
+    
+    # Trust section for pottery creators
+    trust_html = ""
+    if brand_name:
+        trust_html = f'''
+        <div class="funnel-trust">
+            <img src="https://upload.wikimedia.org/wikipedia/commons/e/e5/Google_YouTube_icon_(2015-2022).svg" 
+                 alt="YouTube" class="youtube-icon">
+            As seen on {brand_name}
+        </div>
+        '''
     
     funnel_html = f'''
     <div class="funnel-container">
         {video_html}
-        <div class="funnel-overlay">
+        <div class="funnel-content">
             <div class="funnel-headline">{headline}</div>
-            <div class="funnel-offer">{offer_text}</div>
+            <div class="funnel-offer">{main_offer_text}</div>
+            {benefits_section}
             {promo_html}
             {urgency_html}
             <a href="{cta_url}" target="_blank" rel="noopener" class="funnel-cta">
                 {cta_text}
             </a>
-            {brand_html}
+            {trust_html}
         </div>
     </div>
     '''
     
-    components.html(funnel_html, height=700, scrolling=True)
+    components.html(funnel_html, height=800, scrolling=True)
     
     # Footer
     st.markdown("---")
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.caption("Powered by QR-Greeting")
+        st.caption("Powered by QR-Greeting · Marketing Funnel")
         if st.button("Create Your Own Marketing Funnel", type="secondary", use_container_width=True):
             st.query_params.clear()
             st.query_params["tab"] = "funnel"

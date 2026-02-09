@@ -47,8 +47,11 @@ def render() -> None:
 
     # Check if we have greeting data in URL (m or mc parameter indicates a message, or t=funnel for funnel)
     has_url_greeting = query_params.get('m') or query_params.get('mc') or query_params.get('t') == 'funnel'
+    
+    # If tab=view is explicitly set, don't show scan preview (let view_page handle it)
+    is_view_tab = query_params.get('tab') == 'view'
 
-    if has_url_greeting:
+    if has_url_greeting and not is_view_tab:
         # Check if this is a funnel-type QR code
         if query_params.get('t') == 'funnel':
             # Display funnel preview

@@ -128,11 +128,16 @@ def render_funnel_view(params: dict) -> None:
     
     embed_url = convert_to_embed_url(video_url) if video_url else None
     
-    # New pottery-themed CSS with warm, tactile design
-    st.markdown("""
+    # CSS will be embedded in the HTML for the iframe
+    funnel_css = """
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&family=Source+Sans+Pro:wght@400;600&display=swap');
         
+        body {
+            margin: 0;
+            padding: 0;
+            background: #FAF7F2;
+        }
         .funnel-container {
             max-width: 100%;
             min-height: 100vh;
@@ -261,7 +266,7 @@ def render_funnel_view(params: dict) -> None:
             margin-right: 8px;
         }
     </style>
-    """, unsafe_allow_html=True)
+    """
     
     # Build video HTML
     video_html = ""
@@ -327,20 +332,29 @@ def render_funnel_view(params: dict) -> None:
         '''
     
     funnel_html = f'''
-    <div class="funnel-container">
-        {video_html}
-        <div class="funnel-content">
-            <div class="funnel-headline">{headline}</div>
-            <div class="funnel-offer">{main_offer_text}</div>
-            {benefits_section}
-            {promo_html}
-            {urgency_html}
-            <a href="{cta_url}" target="_blank" rel="noopener" class="funnel-cta">
-                {cta_text}
-            </a>
-            {trust_html}
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        {funnel_css}
+    </head>
+    <body>
+        <div class="funnel-container">
+            {video_html}
+            <div class="funnel-content">
+                <div class="funnel-headline">{headline}</div>
+                <div class="funnel-offer">{main_offer_text}</div>
+                {benefits_section}
+                {promo_html}
+                {urgency_html}
+                <a href="{cta_url}" target="_blank" rel="noopener" class="funnel-cta">
+                    {cta_text}
+                </a>
+                {trust_html}
+            </div>
         </div>
-    </div>
+    </body>
+    </html>
     '''
     
     components.html(funnel_html, height=800, scrolling=True)

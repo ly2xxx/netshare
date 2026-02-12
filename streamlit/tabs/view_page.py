@@ -7,6 +7,272 @@ import streamlit as st
 from greeting_formats import decode_greeting_from_url
 from config import THEME_ICONS
 from i18n import get_text as _
+import random
+
+
+def get_greeting_html_style_1(message: str, from_name: str, theme_emoji: str) -> str:
+    """Classic Centered - Clean, centered text with subtle background"""
+    return f'''
+    <div class="greeting-message" style="
+        font-family: 'Georgia', serif;
+        font-size: 1.5rem;
+        line-height: 1.8;
+        color: #333;
+        background: linear-gradient(135deg, #fdfbf7 0%, #f5f0e8 100%);
+        padding: 2rem;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        margin: 1rem 0;
+        white-space: pre-wrap;
+        text-align: center;
+    ">{message}</div>
+    '''
+
+
+def get_greeting_html_style_2(message: str, from_name: str, theme_emoji: str) -> str:
+    """Left-aligned with Quote Marks"""
+    return f'''
+    <div class="greeting-message" style="
+        font-family: 'Georgia', serif;
+        font-size: 1.4rem;
+        line-height: 1.8;
+        color: #2c3e50;
+        background: #fff;
+        padding: 2.5rem;
+        border-left: 5px solid #3498db;
+        border-radius: 8px;
+        box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+        margin: 1rem 0;
+        white-space: pre-wrap;
+        position: relative;
+    ">
+        <div style="font-size: 3rem; color: #3498db; opacity: 0.3; position: absolute; top: 10px; left: 15px;">"</div>
+        <div style="padding-left: 1rem;">{message}</div>
+    </div>
+    '''
+
+
+def get_greeting_html_style_3(message: str, from_name: str, theme_emoji: str) -> str:
+    """Card with Shadow"""
+    return f'''
+    <div class="greeting-message" style="
+        font-family: 'Palatino', 'Times New Roman', serif;
+        font-size: 1.5rem;
+        line-height: 1.9;
+        color: #34495e;
+        background: #ffffff;
+        padding: 3rem 2rem;
+        border-radius: 20px;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        margin: 1.5rem 0;
+        white-space: pre-wrap;
+        text-align: center;
+        border: 1px solid #ecf0f1;
+    ">{message}</div>
+    '''
+
+
+def get_greeting_html_style_4(message: str, from_name: str, theme_emoji: str) -> str:
+    """Gradient Background with Light Text"""
+    return f'''
+    <div class="greeting-message" style="
+        font-family: 'Arial', sans-serif;
+        font-size: 1.6rem;
+        line-height: 1.8;
+        color: #ffffff;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 2.5rem;
+        border-radius: 15px;
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        margin: 1rem 0;
+        white-space: pre-wrap;
+        text-align: center;
+        font-weight: 300;
+    ">{message}</div>
+    '''
+
+
+def get_greeting_html_style_5(message: str, from_name: str, theme_emoji: str) -> str:
+    """Typewriter Style"""
+    return f'''
+    <div class="greeting-message" style="
+        font-family: 'Courier New', monospace;
+        font-size: 1.3rem;
+        line-height: 1.7;
+        color: #2c2c2c;
+        background: #f9f9f9;
+        padding: 2rem;
+        border: 2px solid #ddd;
+        border-radius: 5px;
+        margin: 1rem 0;
+        white-space: pre-wrap;
+        text-align: left;
+    ">{message}</div>
+    '''
+
+
+def get_greeting_html_style_6(message: str, from_name: str, theme_emoji: str) -> str:
+    """Elegant with Top Border Accent"""
+    return f'''
+    <div class="greeting-message" style="
+        font-family: 'Georgia', serif;
+        font-size: 1.5rem;
+        line-height: 1.8;
+        color: #444;
+        background: #fefefe;
+        padding: 2.5rem 2rem;
+        border-top: 6px solid #e74c3c;
+        border-radius: 8px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        margin: 1rem 0;
+        white-space: pre-wrap;
+        text-align: center;
+    ">{message}</div>
+    '''
+
+
+def get_greeting_html_style_7(message: str, from_name: str, theme_emoji: str) -> str:
+    """Modern Minimal"""
+    return f'''
+    <div class="greeting-message" style="
+        font-family: 'Helvetica Neue', Arial, sans-serif;
+        font-size: 1.4rem;
+        line-height: 1.9;
+        color: #333;
+        background: #f7f9fc;
+        padding: 2.5rem;
+        border-radius: 12px;
+        border: 1px solid #e1e8ed;
+        margin: 1rem 0;
+        white-space: pre-wrap;
+        text-align: left;
+    ">{message}</div>
+    '''
+
+
+def get_greeting_html_style_8(message: str, from_name: str, theme_emoji: str) -> str:
+    """Warm Beige Tone"""
+    return f'''
+    <div class="greeting-message" style="
+        font-family: 'Georgia', serif;
+        font-size: 1.5rem;
+        line-height: 1.8;
+        color: #5a4a3a;
+        background: linear-gradient(135deg, #fffbf0 0%, #f5e6d3 100%);
+        padding: 2.5rem;
+        border-radius: 15px;
+        box-shadow: 0 5px 18px rgba(90,74,58,0.15);
+        margin: 1rem 0;
+        white-space: pre-wrap;
+        text-align: center;
+        border: 1px solid #e8dcc8;
+    ">{message}</div>
+    '''
+
+
+def get_greeting_html_style_9(message: str, from_name: str, theme_emoji: str) -> str:
+    """Bold with Emoji Header"""
+    return f'''
+    <div style="text-align: center; margin-bottom: 1rem;">
+        <div style="font-size: 4rem; margin-bottom: 0.5rem;">{theme_emoji}</div>
+    </div>
+    <div class="greeting-message" style="
+        font-family: 'Verdana', sans-serif;
+        font-size: 1.4rem;
+        line-height: 1.8;
+        color: #222;
+        background: #fff;
+        padding: 2rem;
+        border-radius: 12px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+        margin: 0.5rem 0 1rem 0;
+        white-space: pre-wrap;
+        text-align: center;
+        border: 3px solid #f0f0f0;
+    ">{message}</div>
+    '''
+
+
+def get_greeting_html_style_10(message: str, from_name: str, theme_emoji: str) -> str:
+    """Handwritten Feel"""
+    return f'''
+    <div class="greeting-message" style="
+        font-family: 'Comic Sans MS', 'Brush Script MT', cursive;
+        font-size: 1.6rem;
+        line-height: 1.7;
+        color: #444;
+        background: #fffef8;
+        padding: 2.5rem;
+        border-radius: 10px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        margin: 1rem 0;
+        white-space: pre-wrap;
+        text-align: center;
+        border: 2px dashed #ddd;
+    ">{message}</div>
+    '''
+
+
+def get_greeting_html_style_11(message: str, from_name: str, theme_emoji: str) -> str:
+    """Dark Mode Style"""
+    return f'''
+    <div class="greeting-message" style="
+        font-family: 'Arial', sans-serif;
+        font-size: 1.5rem;
+        line-height: 1.8;
+        color: #e0e0e0;
+        background: linear-gradient(135deg, #2c3e50 0%, #34495e 100%);
+        padding: 2.5rem;
+        border-radius: 15px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+        margin: 1rem 0;
+        white-space: pre-wrap;
+        text-align: center;
+    ">{message}</div>
+    '''
+
+
+def get_greeting_html_style_12(message: str, from_name: str, theme_emoji: str) -> str:
+    """Paper with Torn Edge Effect"""
+    return f'''
+    <div class="greeting-message" style="
+        font-family: 'Georgia', serif;
+        font-size: 1.4rem;
+        line-height: 1.8;
+        color: #3c3c3c;
+        background: #fffcf5;
+        padding: 2.5rem;
+        border-radius: 3px;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.1), inset 0 0 0 1px rgba(0,0,0,0.05);
+        margin: 1rem 0;
+        white-space: pre-wrap;
+        text-align: left;
+        position: relative;
+    ">
+        <div style="position: absolute; top: -5px; left: 0; right: 0; height: 8px; background: linear-gradient(135deg, transparent 33.33%, #fffcf5 33.33%, #fffcf5 66.66%, transparent 66.66%), linear-gradient(45deg, transparent 33.33%, #fffcf5 33.33%, #fffcf5 66.66%, transparent 66.66%); background-size: 8px 8px; background-position: 0 0, 4px 0;"></div>
+        {message}
+    </div>
+    '''
+
+
+def get_random_greeting_style(message: str, from_name: str, theme_emoji: str) -> str:
+    """Randomly select one of the 12 greeting styles"""
+    styles = [
+        get_greeting_html_style_1,
+        get_greeting_html_style_2,
+        get_greeting_html_style_3,
+        get_greeting_html_style_4,
+        get_greeting_html_style_5,
+        get_greeting_html_style_6,
+        get_greeting_html_style_7,
+        get_greeting_html_style_8,
+        get_greeting_html_style_9,
+        get_greeting_html_style_10,
+        get_greeting_html_style_11,
+        get_greeting_html_style_12
+    ]
+    selected_style = random.choice(styles)
+    return selected_style(message, from_name, theme_emoji)
 
 
 def render() -> None:
@@ -39,7 +305,7 @@ def render() -> None:
     theme = greeting.get("theme", "general")
     theme_emoji = THEME_ICONS.get(theme, "🎄")
 
-    # Mobile-optimized greeting display (message only)
+    # Mobile-optimized greeting display
     st.markdown("""
     <style>
         .mobile-greeting-container {
@@ -47,22 +313,6 @@ def render() -> None:
             margin: 0 auto;
             padding: 2rem 1rem;
             text-align: center;
-        }
-        .greeting-emoji {
-            font-size: 4rem;
-            margin-bottom: 1rem;
-        }
-        .greeting-message {
-            font-family: 'Georgia', serif;
-            font-size: 1.5rem;
-            line-height: 1.8;
-            color: #333;
-            background: linear-gradient(135deg, #fdfbf7 0%, #f5f0e8 100%);
-            padding: 2rem;
-            border-radius: 15px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            margin: 1rem 0;
-            white-space: pre-wrap;
         }
         .greeting-from {
             font-size: 1.1rem;
@@ -81,13 +331,13 @@ def render() -> None:
     # Display the greeting
     st.markdown('<div class="mobile-greeting-container">', unsafe_allow_html=True)
 
-    # Theme emoji
-    if theme_emoji:
-        st.markdown(f'<div class="greeting-emoji">{theme_emoji}</div>', unsafe_allow_html=True)
-
-    # The message (main content)
+    # The message (main content) - use random greeting style
     message = greeting.get("message", "")
-    st.markdown(f'<div class="greeting-message">{message}</div>', unsafe_allow_html=True)
+    from_name = greeting.get("from", "")
+    
+    # Generate styled greeting HTML
+    greeting_html = get_random_greeting_style(message, from_name, theme_emoji)
+    st.markdown(greeting_html, unsafe_allow_html=True)
 
     # From attribution (subtle)
     from_name = greeting.get("from", "")

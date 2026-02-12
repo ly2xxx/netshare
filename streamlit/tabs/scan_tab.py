@@ -241,45 +241,28 @@ def render() -> None:
                         st.subheader(_("scan_tab.greeting_message"))
 
                         if is_funnel:
-                            # Parse URL parameters from funnel QR
+                            # Parse URL parameters from funnel QR and render full funnel view
                             import urllib.parse
                             try:
+                                # Import the proper funnel rendering function
+                                from tabs.view_page import render_funnel_view
+                                
                                 # Extract query parameters
                                 if '?' in qr_data:
                                     query_string = qr_data.split('?', 1)[1]
                                     params = dict(urllib.parse.parse_qsl(query_string))
                                     
-                                    # Display funnel preview
-                                    st.success("Marketing Funnel QR Decoded!")
-                                    
-                                    headline = params.get("fh", "Special Offer")
-                                    offer_text = params.get("m", "")
-                                    cta_text = params.get("fc", "Learn More")
-                                    cta_url = params.get("fu", "#")
-                                    promo_code = params.get("fp", "")
-                                    urgency = params.get("fg", "")
-                                    video_url = params.get("bg", "")
-                                    brand_name = params.get("f", "")
-                                    
-                                    st.markdown("**📋 Funnel Details:**")
-                                    st.write(f"**Headline:** {headline}")
-                                    st.write(f"**Offer:** {offer_text}")
-                                    st.write(f"**CTA Button:** {cta_text}")
-                                    st.write(f"**Landing URL:** {cta_url}")
-                                    if promo_code:
-                                        st.write(f"**Promo Code:** 🏷️ {promo_code}")
-                                    if urgency:
-                                        st.write(f"**Urgency:** ⏰ {urgency}")
-                                    if video_url:
-                                        st.write(f"**Video:** 🎬 Yes")
-                                    if brand_name:
-                                        st.write(f"**Brand:** {brand_name}")
+                                    # Display success message
+                                    st.success("🎬 Marketing Funnel QR Decoded!")
+                                    st.info("💡 Below is how this funnel appears when scanned with a mobile device:")
                                     
                                     st.markdown("---")
-                                    st.info("💡 This is a Marketing Funnel QR. When scanned with a phone, it will play a video and show this offer.")
+                                    
+                                    # Render the full funnel experience (video, styled content, etc.)
+                                    render_funnel_view(params)
                                     
                             except Exception as e:
-                                st.error(f"Error parsing funnel QR: {e}")
+                                st.error(f"Error rendering funnel QR: {e}")
                                 st.code(qr_data)
                         else:
                             # Parse as regular greeting (handles both URL and JSON formats)

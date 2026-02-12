@@ -53,7 +53,7 @@ def encode_greeting_to_url(greeting: Dict, base_url: str = GREETING_APP_URL) -> 
     
     # Build query string with short parameter names
     params = {
-        "tab": "scan",
+        "tab": "view",  # Fixed: use "view" to trigger mobile greeting view
         "f": from_name,
         "t": to_name,
         "th": theme

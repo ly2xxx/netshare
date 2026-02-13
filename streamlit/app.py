@@ -89,8 +89,8 @@ def main():
         st.markdown("---")
 
         # Marketing Funnel tab toggle
-        # Auto-enable if URL has tab=funnel parameter or _tab=funnel
-        default_show_funnel = tab_param == "funnel" or tracked_tab == "funnel"
+        # Enabled by default, ensures visibility
+        default_show_funnel = True
         show_funnel = st.checkbox(
             "📈 Marketing Funnel",
             value=default_show_funnel,
@@ -116,7 +116,7 @@ def main():
     tab_keys.append("about")
     
     # Determine current tab index
-    # Priority: 1. tracked_tab (from URL _tab), 2. session state, 3. tab_param (legacy tab=...), 4. Default (0)
+    # Priority: 1. tracked_tab (from URL _tab), 2. tab_param (explicit in URL), 3. session state, 4. Default (0)
     tab_index = 0
     
     # Handle tracked_tab (from URL _tab)
@@ -131,10 +131,13 @@ def main():
                     tab_index = idx
             except (ValueError, TypeError):
                 pass
+    # Handle explicit tab param (higher priority than session for deep linking support)
+    elif "tab" in query_params and tab_param in tab_keys:
+        tab_index = tab_keys.index(tab_param)
     # Handle session state (only if no URL tracking override, but URL tracking is usually superior for bookmarking)
     elif "current_tab_index" in st.session_state:
         tab_index = st.session_state.current_tab_index
-    # Handle legacy tab param
+    # Handle default tab param (if not explicit in URL)
     elif tab_param in tab_keys:
         tab_index = tab_keys.index(tab_param)
         

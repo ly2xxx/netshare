@@ -49,13 +49,6 @@ except:
     tab_param = query_params.get('tab', ['create'])[0]
     tracked_tab = query_params.get('_tab', [None])[0]
 
-# Update session state with tracked tab index if available
-if tracked_tab is not None:
-    try:
-        st.session_state.current_tab_index = int(tracked_tab)
-    except (ValueError, TypeError):
-        pass
-
 # Show mobile-friendly greeting view if tab=view
 if tab_param == "view":
     view_page.render()
@@ -96,8 +89,8 @@ def main():
         st.markdown("---")
 
         # Marketing Funnel tab toggle
-        # Auto-enable if URL has tab=funnel parameter
-        default_show_funnel = tab_param == "funnel"
+        # Auto-enable if URL has tab=funnel parameter or _tab=funnel
+        default_show_funnel = tab_param == "funnel" or tracked_tab == "funnel"
         show_funnel = st.checkbox(
             "📈 Marketing Funnel",
             value=default_show_funnel,
@@ -105,51 +98,62 @@ def main():
         )
         
         # Batch tab toggle
-        # Auto-enable if URL has tab=batch parameter
-        default_show_batch = tab_param == "batch"
+        # Auto-enable if URL has tab=batch parameter or _tab=batch
+        default_show_batch = tab_param == "batch" or tracked_tab == "batch"
         show_batch = st.checkbox(
             _("app.sidebar.batch_checkbox"),
             value=default_show_batch,
             help=_("app.sidebar.batch_help")
         )
 
-    # Map tab names to indices (depends on whether batch/funnel tabs are shown)
+    # Define tab keys in order
     # Demo tab is first for visibility to new users
-    tab_index_counter = 0
-    tab_map = {}
-    tab_map["demo"] = tab_index_counter
-    tab_index_counter += 1
-    tab_map["create"] = tab_index_counter
-    tab_index_counter += 1
-    tab_map["scan"] = tab_index_counter
-    tab_index_counter += 1
-    tab_map["examples"] = tab_index_counter
-    tab_index_counter += 1
+    tab_keys = ["demo", "create", "scan", "examples"]
     if show_funnel:
-        tab_map["funnel"] = tab_index_counter
-        tab_index_counter += 1
+        tab_keys.append("funnel")
     if show_batch:
-        tab_map["batch"] = tab_index_counter
-        tab_index_counter += 1
-    tab_map["about"] = tab_index_counter
+        tab_keys.append("batch")
+    tab_keys.append("about")
     
-    # Use session state tab index if available (preserves tab across locale switch)
-    # Otherwise fall back to URL param or default to Demo (0)
-    if "current_tab_index" in st.session_state:
+    # Determine current tab index
+    # Priority: 1. tracked_tab (from URL _tab), 2. session state, 3. tab_param (legacy tab=...), 4. Default (0)
+    tab_index = 0
+    
+    # Handle tracked_tab (from URL _tab)
+    if tracked_tab:
+        if tracked_tab in tab_keys:
+            tab_index = tab_keys.index(tracked_tab)
+        else:
+            # Fallback for legacy integer indices or invalid values
+            try:
+                idx = int(tracked_tab)
+                if 0 <= idx < len(tab_keys):
+                    tab_index = idx
+            except (ValueError, TypeError):
+                pass
+    # Handle session state (only if no URL tracking override, but URL tracking is usually superior for bookmarking)
+    elif "current_tab_index" in st.session_state:
         tab_index = st.session_state.current_tab_index
-    else:
-        tab_index = tab_map.get(tab_param, 0)
-        st.session_state.current_tab_index = tab_index
+    # Handle legacy tab param
+    elif tab_param in tab_keys:
+        tab_index = tab_keys.index(tab_param)
+        
+    # Update session state
+    st.session_state.current_tab_index = tab_index
 
     # Inject JavaScript to:
     # 1. Click the correct tab if not the first tab
-    # 2. Track tab clicks and store in session state via hidden query param
+    # 2. Track tab clicks and store in session state via hidden query param using tab name
+    import json
+    tab_keys_json = json.dumps(tab_keys)
+    
     components.html(f"""
         <script>
         (function() {{
             let attempts = 0;
             const maxAttempts = 10;
             const targetTabIndex = {tab_index};
+            const tabKeys = {tab_keys_json};
 
             function clickTab() {{
                 const tabs = window.parent.document.querySelectorAll('button[data-baseweb="tab"]');
@@ -160,14 +164,24 @@ def main():
                         tabs[targetTabIndex].click();
                     }}
                     
-                    // Add click listeners to all tabs to track selection
+                    // Update tab keys on all tabs and add listeners
                     tabs.forEach((tab, index) => {{
+                        // Always update the data-tab-key to match present state
+                        // This fixes issues where DOM elements are reused but tab mapped changed
+                        const tabKey = tabKeys[index] || index.toString();
+                        tab.setAttribute('data-tab-key', tabKey);
+                        
+                        // Only add listener once
                         if (!tab.hasAttribute('data-tab-tracked')) {{
                             tab.setAttribute('data-tab-tracked', 'true');
-                            tab.addEventListener('click', () => {{
-                                // Store tab index in URL param for next rerun
+                            tab.addEventListener('click', (e) => {{
+                                // Read the latest key from the attribute
+                                // This decoupling ensures we don't rely on stale closures
+                                const currentTabKey = e.currentTarget.getAttribute('data-tab-key');
+                                
+                                // Store tab name in URL param for next rerun
                                 const url = new URL(window.parent.location.href);
-                                url.searchParams.set('_tab', index.toString());
+                                url.searchParams.set('_tab', currentTabKey);
                                 // Use history.replaceState to avoid page reload
                                 window.parent.history.replaceState({{}}, '', url.toString());
                             }});

@@ -57,6 +57,7 @@ tmp/
 
 # app specific data
 *.png
+!icon.png
 !streamlit/*/*.png
 !streamlit/packages.txt
 !streamlit/translations.json
